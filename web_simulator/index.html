@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sous-Chef | Voice-First Kitchen Assistant</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-badge">ALEXA+ SIMULATOR</div>
+        <h1>Sous-Chef</h1>
+      </div>
+      <div class="header-status">
+        <div class="status-indicator">
+          <span class="pulse-dot"></span>
+          <span id="mcp-status">FastMCP 1.30.0 Connected</span>
+        </div>
+        <div class="metric-chip">
+          <span class="metric-label">Latency</span>
+          <span class="metric-value" id="latency-metric">-- ms</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="main-layout">
+      <!-- Left Column: Voice Orb & Conversation -->
+      <section class="voice-section glass-panel">
+        <div class="orb-container">
+          <div class="orb-aura"></div>
+          <div class="voice-orb" id="voice-orb">
+            <div class="orb-core"></div>
+          </div>
+          <div class="orb-ring ring-1"></div>
+          <div class="orb-ring ring-2"></div>
+        </div>
+
+        <div class="voice-state-label" id="voice-state">Tap Mic or Type to Speak</div>
+
+        <!-- Live Captions & Dialogue -->
+        <div class="transcript-box" id="transcript-box">
+          <div class="transcript-entry assistant">
+            <span class="speaker-tag">Sous-Chef</span>
+            <p>Welcome to Sous-Chef! I'm your kitchen voice assistant. Try asking <em>"What's in my kitchen?"</em> or say <em>"I bought 2 gallons of milk and a dozen eggs."</em></p>
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="voice-controls">
+          <button class="mic-button" id="mic-btn" title="Toggle Voice Recognition">
+            <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="22"/>
+            </svg>
+          </button>
+          
+          <form class="text-input-form" id="chat-form">
+            <input type="text" id="text-input" placeholder="Type a kitchen command or question..." autocomplete="off">
+            <button type="submit" id="send-btn" class="send-button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </button>
+          </form>
+        </div>
+
+        <!-- Quick Phrases Bar -->
+        <div class="quick-phrases">
+          <span class="quick-label">Try saying:</span>
+          <button class="chip" data-phrase="What's in my kitchen?">What's in my kitchen?</button>
+          <button class="chip" data-phrase="What is about to expire?">What's about to expire?</button>
+          <button class="chip" data-phrase="I bought 2 gallons of milk and 6 eggs">Add milk & eggs</button>
+          <button class="chip" data-phrase="Undo that">Undo that</button>
+        </div>
+      </section>
+
+      <!-- Right Column: Live Pantry & Shelf-Life View -->
+      <section class="inventory-section glass-panel">
+        <div class="inventory-header">
+          <div>
+            <h2>Pantry & Refrigerator</h2>
+            <p class="section-subtitle">Real-time Append-Only Projection</p>
+          </div>
+          <button class="refresh-btn" id="refresh-inventory-btn" title="Refresh Inventory">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Filter Chips -->
+        <div class="inventory-filters">
+          <button class="filter-tab active" data-filter="all">All Items (<span id="count-all">0</span>)</button>
+          <button class="filter-tab" data-filter="expiring">Expiring Soon (<span id="count-expiring">0</span>)</button>
+        </div>
+
+        <!-- Inventory List -->
+        <div class="inventory-grid" id="inventory-grid">
+          <div class="empty-state">
+            <p>Loading kitchen inventory...</p>
+          </div>
+        </div>
+
+        <!-- Daily Nutrition Summary Widget -->
+        <div class="nutrition-widget">
+          <div class="nutrition-widget-header">
+            <h3>Today's Nutrition (Estimated)</h3>
+            <span class="source-tag">USDA FoodData</span>
+          </div>
+          <div class="nutrition-metrics">
+            <div class="metric-card">
+              <span class="metric-num" id="today-kcal">0</span>
+              <span class="metric-name">Calories (kcal)</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-num" id="today-protein">0g</span>
+              <span class="metric-name">Protein</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,186 @@
+{
+  "egg_whole": {
+    "name": "Eggs",
+    "family": "count",
+    "base_unit": "count",
+    "kcal_per_100g": 143.0,
+    "protein_g_per_100g": 12.6,
+    "avg_weight_g": 50.0,
+    "shelf_life_days": 28,
+    "zone": "fridge",
+    "synonyms": ["egg", "eggs", "large egg", "large eggs", "farm eggs", "dozen eggs"]
+  },
+  "milk_whole": {
+    "name": "Whole Milk",
+    "family": "volume",
+    "base_unit": "ml",
+    "kcal_per_100g": 61.0,
+    "protein_g_per_100g": 3.2,
+    "density_g_per_ml": 1.03,
+    "shelf_life_days": 7,
+    "zone": "fridge",
+    "synonyms": ["milk", "whole milk", "vitamin d milk", "cow milk", "dairy milk"]
+  },
+  "chicken_breast": {
+    "name": "Chicken Breast",
+    "family": "mass",
+    "base_unit": "g",
+    "kcal_per_100g": 165.0,
+    "protein_g_per_100g": 31.0,
+    "avg_weight_g": 174.0,
+    "shelf_life_days": 2,
+    "zone": "fridge",
+    "synonyms": ["chicken breast", "chicken", "raw chicken", "boneless chicken", "chicken cutlets"]
+  },
+  "ground_beef": {
+    "name": "Ground Beef (85/15)",
+    "family": "mass",
+    "base_unit": "g",
+    "kcal_per_100g": 215.0,
+    "protein_g_per_100g": 18.6,
+    "shelf_life_days": 2,
+    "zone": "fridge",
+    "synonyms": ["ground beef", "beef", "minced beef", "hamburger meat", "ground sirloin"]
+  },
+  "spinach_fresh": {
+    "name": "Fresh Spinach",
+    "family": "mass",
+    "base_unit": "g",
+    "kcal_per_100g": 23.0,
+    "protein_g_per_100g": 2.9,
+    "avg_weight_g": 30.0,
+    "shelf_life_days": 5,
+    "zone": "fridge",
+    "synonyms": ["spinach", "baby spinach", "fresh spinach", "spinach leaves"]
+  },
+  "cheddar_cheese": {
+    "name": "Cheddar Cheese",
+    "family": "mass",
+    "base_unit": "g",
+    "kcal_per_100g": 403.0,
+    "protein_g_per_100g": 24.9,
+    "avg_weight_g": 28.0,
+    "shelf_life_days": 21,
+    "zone": "fridge",
+    "synonyms": ["cheddar cheese", "cheddar", "cheese", "shredded cheddar", "sharp cheddar"]
+  },
+  "black_beans": {
+    "name": "Black Beans (Canned)",
+    "family": "count",
+    "base_unit": "count",
+    "kcal_per_100g": 91.0,
+    "protein_g_per_100g": 6.0,
+    "avg_weight_g": 425.0,
+    "shelf_life_days": 730,
+    "zone": "pantry",
+    "synonyms": ["black beans", "beans", "canned black beans", "can of black beans"]
+  },
+  "crushed_tomatoes": {
+    "name": "Crushed Tomatoes (Canned)",
+    "family": "count",
+    "base_unit": "count",
+    "kcal_per_100g": 32.0,
+    "protein_g_per_100g": 1.6,
+    "avg_weight_g": 794.0,
+    "shelf_life_days": 730,
+    "zone": "pantry",
+    "synonyms": ["crushed tomatoes", "canned tomatoes", "tomatoes", "diced tomatoes", "tomato sauce"]
+  },
+  "white_rice": {
+    "name": "White Rice (Dry)",
+    "family": "mass",
+    "base_unit": "g",
+    "kcal_per_100g": 365.0,
+    "protein_g_per_100g": 7.1,
+    "avg_weight_g": 185.0,
+    "shelf_life_days": 365,
+    "zone": "pantry",
+    "synonyms": ["white rice", "rice", "jasmine rice", "basmati rice", "long grain rice"]
+  },
+  "olive_oil": {
+    "name": "Extra Virgin Olive Oil",
+    "family": "volume",
+    "base_unit": "ml",
+    "kcal_per_100g": 884.0,
+    "protein_g_per_100g": 0.0,
+    "density_g_per_ml": 0.92,
+    "shelf_life_days": 365,
+    "zone": "pantry",
+    "synonyms": ["olive oil", "extra virgin olive oil", "evoo", "cooking oil"]
+  },
+  "butter": {
+    "name": "Unsalted Butter",
+    "family": "mass",
+    "base_unit": "g",
+    "kcal_per_100g": 717.0,
+    "protein_g_per_100g": 0.9,
+    "avg_weight_g": 113.0,
+    "shelf_life_days": 30,
+    "zone": "fridge",
+    "synonyms": ["butter", "unsalted butter", "sweet butter"]
+  },
+  "apples": {
+    "name": "Apples",
+    "family": "count",
+    "base_unit": "count",
+    "kcal_per_100g": 52.0,
+    "protein_g_per_100g": 0.3,
+    "avg_weight_g": 182.0,
+    "shelf_life_days": 14,
+    "zone": "pantry",
+    "synonyms": ["apple", "apples", "fuji apple", "gala apple", "honeycrisp"]
+  },
+  "bananas": {
+    "name": "Bananas",
+    "family": "count",
+    "base_unit": "count",
+    "kcal_per_100g": 89.0,
+    "protein_g_per_100g": 1.1,
+    "avg_weight_g": 118.0,
+    "shelf_life_days": 6,
+    "zone": "pantry",
+    "synonyms": ["banana", "bananas", "ripe bananas"]
+  },
+  "onion_yellow": {
+    "name": "Yellow Onion",
+    "family": "count",
+    "base_unit": "count",
+    "kcal_per_100g": 40.0,
+    "protein_g_per_100g": 1.1,
+    "avg_weight_g": 160.0,
+    "shelf_life_days": 30,
+    "zone": "pantry",
+    "synonyms": ["onion", "onions", "yellow onion", "white onion"]
+  },
+  "garlic": {
+    "name": "Garlic",
+    "family": "count",
+    "base_unit": "count",
+    "kcal_per_100g": 149.0,
+    "protein_g_per_100g": 6.4,
+    "avg_weight_g": 5.0,
+    "shelf_life_days": 60,
+    "zone": "pantry",
+    "synonyms": ["garlic", "garlic clove", "cloves of garlic", "garlic bulb"]
+  },
+  "salt": {
+    "name": "Table Salt",
+    "family": "mass",
+    "base_unit": "g",
+    "kcal_per_100g": 0.0,
+    "protein_g_per_100g": 0.0,
+    "shelf_life_days": 1825,
+    "zone": "pantry",
+    "synonyms": ["salt", "table salt", "sea salt", "kosher salt"]
+  },
+  "black_pepper": {
+    "name": "Black Pepper",
+    "family": "mass",
+    "base_unit": "g",
+    "kcal_per_100g": 251.0,
+    "protein_g_per_100g": 10.4,
+    "shelf_life_days": 1095,
+    "zone": "pantry",
+    "synonyms": ["black pepper", "pepper", "ground black pepper"]
+  }
+}

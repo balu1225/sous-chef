@@ -1,0 +1,12 @@
+# Exact pins: upgrades are deliberate, tested changes (reliability first).
+mcp==1.30.0
+psycopg[binary]==3.3.6
+psycopg-pool==3.3.3
+uvicorn==0.54.0
+starlette==1.8.0
+pydantic==2.14.1
+anyio==4.15.1
+httpx==0.28.1
+
+# tests
+pytest==9.1.1
