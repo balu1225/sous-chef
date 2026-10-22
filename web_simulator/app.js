@@ -246,6 +246,18 @@ class SousChefVoiceApp {
     this.musicBtn = document.getElementById('music-btn');
     this.musicVol = document.getElementById('music-vol');
 
+    // Apple Storage Breakdown & Search Elements
+    this.barFridge = document.getElementById('bar-fridge');
+    this.barPantry = document.getElementById('bar-pantry');
+    this.barFreezer = document.getElementById('bar-freezer');
+    this.countFridge = document.getElementById('count-fridge');
+    this.countPantry = document.getElementById('count-pantry');
+    this.countFreezer = document.getElementById('count-freezer');
+    this.storageTotalCount = document.getElementById('storage-total-count');
+    this.searchInput = document.getElementById('inventory-search-input');
+    this.searchClearBtn = document.getElementById('search-clear-btn');
+    this.searchQuery = '';
+
     // State Variables
     this.isListening = false;
     this.isSpeaking = false;
@@ -1004,6 +1016,26 @@ class SousChefVoiceApp {
     }
   }
 
+  getItemEmoji(name) {
+    const n = (name || '').toLowerCase();
+    if (n.includes('milk') || n.includes('dairy') || n.includes('cream')) return '🥛';
+    if (n.includes('egg')) return '🥚';
+    if (n.includes('cheese') || n.includes('cheddar') || n.includes('parmesan')) return '🧀';
+    if (n.includes('spinach') || n.includes('kale') || n.includes('lettuce') || n.includes('salad') || n.includes('green')) return '🥬';
+    if (n.includes('chicken') || n.includes('beef') || n.includes('meat') || n.includes('turkey') || n.includes('pork') || n.includes('steak')) return '🍗';
+    if (n.includes('oil') || n.includes('olive')) return '🫒';
+    if (n.includes('bread') || n.includes('toast') || n.includes('flour') || n.includes('dough')) return '🍞';
+    if (n.includes('berry') || n.includes('berries') || n.includes('apple') || n.includes('banana') || n.includes('fruit')) return '🫐';
+    if (n.includes('garlic') || n.includes('onion')) return '🧄';
+    if (n.includes('pepper') || n.includes('salt') || n.includes('spice')) return '🧂';
+    if (n.includes('pasta') || n.includes('noodle') || n.includes('spaghetti')) return '🍝';
+    if (n.includes('rice') || n.includes('grain') || n.includes('oat')) return '🌾';
+    if (n.includes('butter')) return '🧈';
+    if (n.includes('fish') || n.includes('salmon') || n.includes('tuna')) return '🐟';
+    if (n.includes('tofu')) return '🧊';
+    return '🍽️';
+  }
+
   renderInventory() {
     this.inventoryGrid.innerHTML = '';
     const now = new Date();
@@ -1011,26 +1043,81 @@ class SousChefVoiceApp {
     const warningCutoff = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000); // 5 days
 
     let expiringCount = 0;
+    let fridgeCount = 0;
+    let pantryCount = 0;
+    let freezerCount = 0;
 
-    const itemsToDisplay = this.inventoryItems.filter(item => {
-      let isExpiring = false;
+    this.inventoryItems.forEach(item => {
+      const z = (item.zone || 'pantry').toLowerCase();
+      if (z.includes('fridge') || z.includes('refrigerator')) fridgeCount++;
+      else if (z.includes('freezer')) freezerCount++;
+      else pantryCount++;
+
       if (item.expires_at) {
         const exp = new Date(item.expires_at);
-        if (exp <= urgentCutoff) {
-          expiringCount++;
-          isExpiring = true;
-        }
+        if (exp <= urgentCutoff) expiringCount++;
       }
-      return this.activeFilter === 'expiring' ? isExpiring : true;
     });
 
-    this.countAll.textContent = this.inventoryItems.length;
-    this.countExpiring.textContent = expiringCount;
+    const totalItems = this.inventoryItems.length;
+    if (this.storageTotalCount) this.storageTotalCount.textContent = `${totalItems} items tracked`;
+    if (this.countAll) this.countAll.textContent = totalItems;
+    if (this.countExpiring) this.countExpiring.textContent = expiringCount;
+    if (this.countFridge) this.countFridge.textContent = fridgeCount;
+    if (this.countPantry) this.countPantry.textContent = pantryCount;
+    if (this.countFreezer) this.countFreezer.textContent = freezerCount;
+
+    // Update Apple storage breakdown bar
+    if (this.barFridge && this.barPantry && this.barFreezer) {
+      if (totalItems > 0) {
+        const fPct = Math.round((fridgeCount / totalItems) * 100);
+        const pPct = Math.round((pantryCount / totalItems) * 100);
+        const zPct = Math.max(0, 100 - fPct - pPct);
+        this.barFridge.style.width = `${fPct}%`;
+        this.barPantry.style.width = `${pPct}%`;
+        this.barFreezer.style.width = `${zPct}%`;
+      } else {
+        this.barFridge.style.width = '33.3%';
+        this.barPantry.style.width = '33.3%';
+        this.barFreezer.style.width = '33.4%';
+      }
+    }
+
+    const q = (this.searchQuery || '').toLowerCase();
+
+    const itemsToDisplay = this.inventoryItems.filter(item => {
+      // Search filter
+      if (q && !item.item.toLowerCase().includes(q)) {
+        return false;
+      }
+
+      // Zone filter
+      const z = (item.zone || 'pantry').toLowerCase();
+      if (this.activeFilter === 'fridge') {
+        return z.includes('fridge') || z.includes('refrigerator');
+      }
+      if (this.activeFilter === 'pantry') {
+        return z.includes('pantry');
+      }
+      if (this.activeFilter === 'freezer') {
+        return z.includes('freezer');
+      }
+      if (this.activeFilter === 'expiring') {
+        if (!item.expires_at) return false;
+        return new Date(item.expires_at) <= urgentCutoff;
+      }
+      return true;
+    });
 
     if (itemsToDisplay.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'empty-state';
-      empty.innerHTML = `<p>${this.activeFilter === 'expiring' ? 'No items expiring within 48 hours!' : 'Your pantry and fridge are empty. Add something by voice!'}</p>`;
+      const msg = q
+        ? `No groceries matching "${escapeHtml(q)}" found.`
+        : (this.activeFilter === 'expiring'
+            ? 'Good news! Nothing is expiring within 48 hours!'
+            : 'Your kitchen storage is empty. Say "I bought groceries" to add items!');
+      empty.innerHTML = `<p>${msg}</p>`;
       this.inventoryGrid.appendChild(empty);
       return;
     }
@@ -1048,16 +1135,60 @@ class SousChefVoiceApp {
         } else if (exp <= warningCutoff) {
           expiryBadge = `<span class="expiry-badge warning">Expires in <5d</span>`;
         } else {
-          expiryBadge = `<span class="expiry-badge good">Good</span>`;
+          expiryBadge = `<span class="expiry-badge good">Fresh</span>`;
         }
       }
 
+      const zoneRaw = (item.zone || 'Pantry').toLowerCase();
+      let zoneClass = 'pantry';
+      let zoneLabel = 'Pantry';
+      if (zoneRaw.includes('fridge') || zoneRaw.includes('refrigerator')) {
+        zoneClass = 'fridge';
+        zoneLabel = 'Fridge';
+      } else if (zoneRaw.includes('freezer')) {
+        zoneClass = 'freezer';
+        zoneLabel = 'Freezer';
+      }
+
+      const emoji = this.getItemEmoji(item.item);
+
       card.innerHTML = `
-        <div class="item-name">${escapeHtml(item.item)}</div>
-        <div class="item-qty">${formatDisplayQty(item.qty, item.unit)}</div>
-        <div class="item-zone">${escapeHtml(item.zone || 'Pantry')}</div>
-        ${expiryBadge}
+        <div class="item-card-top">
+          <div class="item-emoji-and-info">
+            <div class="item-emoji-badge">${emoji}</div>
+            <div class="item-title-col">
+              <span class="item-card-name">${escapeHtml(item.item)}</span>
+              <span class="item-card-qty">${formatDisplayQty(item.qty, item.unit)}</span>
+            </div>
+          </div>
+          ${expiryBadge}
+        </div>
+        <div class="item-card-bottom">
+          <span class="item-zone-badge ${zoneClass}">${zoneLabel}</span>
+          <div class="item-quick-actions">
+            <button type="button" class="item-action-btn use-btn" title="Log using 1">-1 Use</button>
+            <button type="button" class="item-action-btn discard-btn" title="Discard spoiled item">✕ Discard</button>
+          </div>
+        </div>
       `;
+
+      // Interactive button hooks
+      const useBtn = card.querySelector('.use-btn');
+      if (useBtn) {
+        useBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.handleUserUtterance(`I used 1 ${item.item}`);
+        });
+      }
+
+      const discardBtn = card.querySelector('.discard-btn');
+      if (discardBtn) {
+        discardBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.handleUserUtterance(`The ${item.item} is spoiled`);
+        });
+      }
+
       this.inventoryGrid.appendChild(card);
     });
   }
@@ -1168,7 +1299,31 @@ class SousChefVoiceApp {
       this.musicEngine.play();
     });
 
-    // Filter Chips
+    // Search input listener
+    if (this.searchInput) {
+      this.searchInput.addEventListener('input', (e) => {
+        this.searchQuery = e.target.value.trim().toLowerCase();
+        if (this.searchClearBtn) {
+          if (this.searchQuery.length > 0) {
+            this.searchClearBtn.classList.remove('hidden');
+          } else {
+            this.searchClearBtn.classList.add('hidden');
+          }
+        }
+        this.renderInventory();
+      });
+    }
+
+    if (this.searchClearBtn) {
+      this.searchClearBtn.addEventListener('click', () => {
+        if (this.searchInput) this.searchInput.value = '';
+        this.searchQuery = '';
+        this.searchClearBtn.classList.add('hidden');
+        this.renderInventory();
+      });
+    }
+
+    // Filter Chips & Segmented Control Tabs
     document.querySelectorAll('.filter-tab').forEach(tab => {
       tab.addEventListener('click', (e) => {
         document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));

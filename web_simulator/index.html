@@ -140,10 +140,41 @@
             </button>
           </div>
 
-          <!-- Filter Chips -->
-          <div class="inventory-filters">
-            <button class="filter-tab active" data-filter="all">All Items (<span id="count-all">0</span>)</button>
-            <button class="filter-tab" data-filter="expiring">Expiring Soon (<span id="count-expiring">0</span>)</button>
+          <!-- Apple-Style Storage Breakdown Bar -->
+          <div class="storage-distribution-card">
+            <div class="storage-distribution-header">
+              <span class="storage-distribution-title">Kitchen Storage Allocation</span>
+              <span class="storage-total-count" id="storage-total-count">0 items tracked</span>
+            </div>
+            <div class="storage-progress-bar">
+              <div class="storage-bar-segment fridge" id="bar-fridge" style="width: 33.3%;"></div>
+              <div class="storage-bar-segment pantry" id="bar-pantry" style="width: 33.3%;"></div>
+              <div class="storage-bar-segment freezer" id="bar-freezer" style="width: 33.4%;"></div>
+            </div>
+            <div class="storage-legend">
+              <span class="legend-item"><span class="legend-dot fridge"></span> ❄️ Refrigerator (<span id="count-fridge">0</span>)</span>
+              <span class="legend-item"><span class="legend-dot pantry"></span> 🥫 Pantry (<span id="count-pantry">0</span>)</span>
+              <span class="legend-item"><span class="legend-dot freezer"></span> 🧊 Freezer (<span id="count-freezer">0</span>)</span>
+            </div>
+          </div>
+
+          <!-- Apple Search & Segmented Filter Bar -->
+          <div class="inventory-controls-row">
+            <div class="inventory-search-wrapper">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" id="inventory-search-input" placeholder="Search groceries in storage..." autocomplete="off">
+              <button type="button" class="search-clear-btn hidden" id="search-clear-btn" title="Clear search">✕</button>
+            </div>
+            <div class="inventory-filters segmented-control">
+              <button class="filter-tab active" data-filter="all">All (<span id="count-all">0</span>)</button>
+              <button class="filter-tab" data-filter="fridge">❄️ Fridge</button>
+              <button class="filter-tab" data-filter="pantry">🥫 Pantry</button>
+              <button class="filter-tab" data-filter="freezer">🧊 Freezer</button>
+              <button class="filter-tab urgent-tab" data-filter="expiring">⚠️ Expiring (<span id="count-expiring">0</span>)</button>
+            </div>
           </div>
 
           <!-- Inventory List -->
