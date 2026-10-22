@@ -47,6 +47,7 @@ from matching import (
     execute_cooking_deduction,
 )
 from nutrition import calculate_meal_nutrition
+from remedies import get_remedy_for_mishap
 
 log = logging.getLogger("kitchen_agent")
 
@@ -344,6 +345,22 @@ def register_tools(mcp: FastMCP, state: State) -> None:
         return await run_tool("save_custom_recipe", state.config.household_id,
                               ctx.request_id, handler)
 
+    @mcp.tool(
+        name="get_cooking_remedy",
+        description="Get witty culinary advice and scientific kitchen remedies when food is burned, too salty, too spicy, too dry, or ruined.",
+        annotations=ToolAnnotations(readOnlyHint=True, idempotentHint=True,
+                                    destructiveHint=False, openWorldHint=False),
+    )
+    async def get_cooking_remedy(
+        ctx: Context,
+        mishap: Annotated[str, Field(description="Mishap type: burned, too_salty, too_spicy, too_dry, too_watery, too_sour, too_sweet, sauce_curdled, stuck_to_pan, bland, general")] = "general",
+    ) -> CallToolResult:
+        async def handler() -> dict:
+            return get_remedy_for_mishap(mishap)
+
+        return await run_tool("get_cooking_remedy", state.config.household_id,
+                              ctx.request_id, handler)
+
 
 
 # --------------------------------------------------------------------------
@@ -604,6 +621,15 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                 "spoken_message": match_res["spoken_message"],
                 "recipe": top,
                 "suggestions": match_res.get("suggestions", []),
+                "active_cooking": state.active_cooking
+            })
+
+        elif res.action == "kitchen_mishap":
+            mishap_type = res.context.get("mishap_type", "general")
+            remedy_data = get_remedy_for_mishap(mishap_type)
+            return JSONResponse({
+                "spoken_message": remedy_data["spoken_message"],
+                "remedy": remedy_data,
                 "active_cooking": state.active_cooking
             })
 

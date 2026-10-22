@@ -76,3 +76,20 @@ def test_prep_item_check_intent():
     assert res.action == "check_prep_item"
     assert "eggs" in res.context.get("checked_item")
 
+def test_kitchen_mishap_intents():
+    mishaps = [
+        ("I burned the chicken", "burned"),
+        ("The soup is too salty", "too_salty"),
+        ("My mouth is on fire, it's too spicy", "too_spicy"),
+        ("The meat is dry like rubber", "too_dry"),
+        ("The sauce is too watery and thin", "too_watery"),
+        ("Too much lemon it's too sour", "too_sour"),
+        ("The food is stuck to the pan", "stuck_to_pan"),
+        ("Help I messed up my cooking", "general"),
+    ]
+    for utterance, expected_type in mishaps:
+        res = parse_kitchen_utterance(utterance)
+        assert res.action == "kitchen_mishap", f"Failed action for '{utterance}'"
+        assert res.context.get("mishap_type") == expected_type, f"Failed type for '{utterance}'"
+
+

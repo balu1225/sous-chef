@@ -419,3 +419,30 @@ def test_api_converse_music_and_spoiled_food(server, db):
     items = inv_res.json()["items"]
     assert not any(i["item"] == "milk" for i in items)
 
+
+def test_get_cooking_remedy_tool_and_dialogue(server, db):
+    headers = {"Authorization": f"Bearer {TOKEN}"}
+
+    # 1. Test FastMCP tool: get_cooking_remedy
+    res = tool(server, "get_cooking_remedy", {"mishap": "too_salty"})
+    data = payload(res)
+    assert "remedy_steps" in data
+    assert "quip" in data
+    assert "salt" in data["category"].lower() or "salted" in data["category"].lower()
+
+    # 2. Test Conversational API: "I burned the chicken"
+    burn_res = httpx.post(f"{server.base}/api/converse", json={"utterance": "I burned the food"}, headers=headers)
+    assert burn_res.status_code == 200
+    burn_data = burn_res.json()
+    assert "remedy" in burn_data
+    assert burn_data["remedy"]["type"] == "burned"
+    assert len(burn_data["remedy"]["remedy_steps"]) > 0
+
+    # 3. Test Conversational API: "The soup is way too salty"
+    salt_res = httpx.post(f"{server.base}/api/converse", json={"utterance": "It's way too salty"}, headers=headers)
+    assert salt_res.status_code == 200
+    salt_data = salt_res.json()
+    assert "remedy" in salt_data
+    assert salt_data["remedy"]["type"] == "too_salty"
+
+

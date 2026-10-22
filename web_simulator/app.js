@@ -405,6 +405,35 @@ class SousChefVoiceApp {
     this.transcriptBox.scrollTop = this.transcriptBox.scrollHeight;
   }
 
+  appendRemedyTranscript(remedy) {
+    const entry = document.createElement('div');
+    entry.className = 'transcript-entry assistant remedy-entry';
+
+    const stepsList = (remedy.remedy_steps || [])
+      .map((step, idx) => `<li><span class="step-num">${idx + 1}</span> <span>${escapeHtml(step)}</span></li>`)
+      .join('');
+
+    entry.innerHTML = `
+      <div class="remedy-badge-row">
+        <span class="speaker-tag">Sous-Chef</span>
+        <span class="remedy-category-pill">🆘 ${escapeHtml(remedy.category)}</span>
+      </div>
+      <p class="remedy-quip"><em>"${escapeHtml(remedy.quip)}"</em></p>
+      <div class="remedy-steps-card">
+        <div class="remedy-card-title">👨‍🍳 Kitchen Rescue Plan:</div>
+        <ul class="remedy-step-bullets">
+          ${stepsList}
+        </ul>
+      </div>
+      <div class="remedy-pro-tip">
+        <strong>💡 Pro Tip:</strong> ${escapeHtml(remedy.pro_tip)}
+      </div>
+    `;
+
+    this.transcriptBox.appendChild(entry);
+    this.transcriptBox.scrollTop = this.transcriptBox.scrollHeight;
+  }
+
   // ------------------------------------------------------------------------
   // Conversational API Dispatcher
   // ------------------------------------------------------------------------
@@ -476,7 +505,11 @@ class SousChefVoiceApp {
         }
       }
 
-      this.appendTranscript('assistant', reply);
+      if (data.remedy) {
+        this.appendRemedyTranscript(data.remedy);
+      } else {
+        this.appendTranscript('assistant', reply);
+      }
       this.speak(reply);
 
       // Refresh inventory & nutrition

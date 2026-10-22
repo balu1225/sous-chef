@@ -176,3 +176,8 @@ If Alexa+ console access is unavailable or CLI deploy fails, switch immediately 
   - **Interactive Action Acknowledgement:** Saying "Stove is off", "Mixed it", or "Done" (or clicking confirm) acknowledges the action, returns to the cooking flow, and resumes the music.
   - **Spoiled Food Removal:** Saying "The milk is spoiled" discards available inventory atomically without prompting for quantity.
   - **Expanded Automated Test Suite:** Added unit & integration tests in `test_amount_parser.py` and `test_server.py`. Full test suite: **54/54 tests passing in 10.5s**.
+- **2026-10-21 19:35:** Implemented Kitchen Mishap Remedies & Humorous Culinary Empathy (`remedies.py`, `amount_parser.py`, `server.py`, `web_simulator`):
+  - Humorous quips and practical food-chemistry remedies for 10 common kitchen disasters (burned, too salty, too spicy, dry meat, watery sauce, too sour, too sweet, broken sauce, food stuck to pan, bland).
+  - Registered FastMCP tool `get_cooking_remedy` (read-only, idempotent).
+  - Added "🆘 Did it wrong?" quick shortcut chips and rich visual rescue cards to web companion transcript.
+  - Expanded test suite: **56/56 automated tests passing in 11.06s**.

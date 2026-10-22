@@ -1288,3 +1288,115 @@ body {
   background: rgba(255, 255, 255, 0.16);
 }
 
+/* ==========================================================================
+   Kitchen Rescue & Mishap Styling ("Did it wrong?")
+   ========================================================================== */
+.rescue-phrases {
+  margin-top: 4px;
+}
+
+.rescue-label {
+  color: var(--amber-warning);
+  font-weight: 600;
+}
+
+.chip.rescue-chip {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.25);
+  color: #fef08a;
+}
+
+.chip.rescue-chip:hover {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: var(--amber-warning);
+  transform: translateY(-1px);
+}
+
+.transcript-entry.remedy-entry {
+  background: linear-gradient(135deg, rgba(28, 25, 23, 0.9), rgba(41, 20, 10, 0.85));
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.15);
+  padding: 14px 16px;
+}
+
+.remedy-badge-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.remedy-category-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fde68a;
+  padding: 3px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.remedy-quip {
+  font-size: 0.95rem;
+  color: #fef3c7;
+  margin-bottom: 10px;
+  line-height: 1.45;
+}
+
+.remedy-steps-card {
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.remedy-card-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--cyan-primary);
+  margin-bottom: 6px;
+}
+
+.remedy-step-bullets {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: #e2e8f0;
+}
+
+.remedy-step-bullets li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.step-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(0, 202, 224, 0.15);
+  color: var(--cyan-primary);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.remedy-pro-tip {
+  font-size: 0.78rem;
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.12);
+  padding: 8px 10px;
+  border-radius: 6px;
+  border-left: 3px solid var(--amber-warning);
+  line-height: 1.35;
+}
+
+

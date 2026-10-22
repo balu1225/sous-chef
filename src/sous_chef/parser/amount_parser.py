@@ -208,6 +208,40 @@ def parse_kitchen_utterance(text: str) -> ParseResult:
         recipe_name = (cook_match.group(1) or "").strip()
         return ParseResult(action="cook_recipe", items=[], context={"recipe_name": recipe_name})
 
+    # 4. Kitchen Mishaps & Funny Culinary Remedies ("Did it wrong")
+    if any(q in clean for q in ["burned it", "i burned", "food burned", "burned the", "pan is smoking", "is smoking", "it charred", "burnt", "charred", "smells burnt"]):
+        return ParseResult(action="kitchen_mishap", items=[], context={"mishap_type": "burned"})
+
+    if any(q in clean for q in ["too salty", "oversalted", "way too salty", "added too much salt", "dumped salt", "so salty"]):
+        return ParseResult(action="kitchen_mishap", items=[], context={"mishap_type": "too_salty"})
+
+    if any(q in clean for q in ["too spicy", "too hot", "mouth is on fire", "mouth on fire", "too much chili", "too much pepper", "burning my tongue"]):
+        return ParseResult(action="kitchen_mishap", items=[], context={"mishap_type": "too_spicy"})
+
+    if any(q in clean for q in ["too dry", "meat is dry", "chicken is dry", "overcooked", "like rubber", "shoe leather", "too chewy"]):
+        return ParseResult(action="kitchen_mishap", items=[], context={"mishap_type": "too_dry"})
+
+    if any(q in clean for q in ["too watery", "too runny", "sauce is watery", "soup is thin", "diluted", "runny sauce", "sauce is runny"]):
+        return ParseResult(action="kitchen_mishap", items=[], context={"mishap_type": "too_watery"})
+
+    if any(q in clean for q in ["too sour", "too acidic", "too much lemon", "too much vinegar", "puckering"]):
+        return ParseResult(action="kitchen_mishap", items=[], context={"mishap_type": "too_sour"})
+
+    if any(q in clean for q in ["too sweet", "accidentally added sugar", "tastes like dessert"]):
+        return ParseResult(action="kitchen_mishap", items=[], context={"mishap_type": "too_sweet"})
+
+    if any(q in clean for q in ["curdled", "sauce broke", "cream split", "sauce separated", "separated sauce"]):
+        return ParseResult(action="kitchen_mishap", items=[], context={"mishap_type": "sauce_curdled"})
+
+    if any(q in clean for q in ["stuck to the pan", "stuck to pan", "eggs stuck", "food is sticking", "pan stuck", "sticking to pan"]):
+        return ParseResult(action="kitchen_mishap", items=[], context={"mishap_type": "stuck_to_pan"})
+
+    if any(q in clean for q in ["bland", "tastes like nothing", "no flavor", "tastes like cardboard", "needs flavor"]):
+        return ParseResult(action="kitchen_mishap", items=[], context={"mishap_type": "bland"})
+
+    if any(q in clean for q in ["i messed up", "i did it wrong", "help i ruined it", "i made a mistake", "i ruined dinner", "what did i do wrong", "i ruined it", "i did something wrong"]):
+        return ParseResult(action="kitchen_mishap", items=[], context={"mishap_type": "general"})
+
     # 4. Check for Query / Inspection / Undo
     if any(q in clean for q in ["what is about to expire", "what s about to expire", "what is expiring", "what is spoiling"]) and not any(w in clean for w in ["is spoiled", "are spoiled", "went bad", "gone bad", "rotten"]):
         return ParseResult(action="query_expiring", items=[])
