@@ -72,6 +72,7 @@ class State:
     store: Store | None = None
     pending_clarification: dict | None = None
     active_cooking: dict | None = None
+    last_cooked_meal: dict | None = None
 
 
 
@@ -319,6 +320,7 @@ def register_tools(mcp: FastMCP, state: State) -> None:
                 raise ToolFailure("db_unavailable", "Kitchen database unavailable.")
             recipe_uuid = str(uuid.uuid4())
             with state.store.pool.connection() as conn:
+                conn.execute("INSERT INTO households (household_id) VALUES (%s) ON CONFLICT DO NOTHING", (state.config.household_id,))
                 conn.execute(
                     "INSERT INTO custom_recipes (recipe_id, household_id, name, servings, prep_minutes, ingredients, steps) "
                     "VALUES (%s, %s, %s, %s, %s, %s, %s) "
@@ -463,7 +465,60 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                                  state.config.tool_timeout_s, retry_transient=True)
         return JSONResponse(res)
 
-    async def api_recipes(_: Request) -> JSONResponse:
+    async def api_recipes(request: Request) -> JSONResponse:
+        if request.method == "POST":
+            body = await request.json()
+            name = (body.get("name") or "").strip()
+            if not name:
+                return JSONResponse({"error": "name_required"}, status_code=400)
+            raw_ingredients = body.get("ingredients", [])
+            servings = float(body.get("servings", 2.0))
+            prep_minutes = int(body.get("prep_minutes", 15))
+            steps = body.get("steps", [])
+
+            ingredients = []
+            if isinstance(raw_ingredients, str):
+                parsed = parse_kitchen_utterance(f"save recipe {name} with {raw_ingredients}")
+                if parsed.items:
+                    ingredients = [{"item": i.item, "qty": i.qty or 1.0, "unit": i.unit or "count"} for i in parsed.items]
+                else:
+                    parts = [p.strip() for p in raw_ingredients.split(",") if p.strip()]
+                    ingredients = [{"item": p, "qty": 1.0, "unit": "serving"} for p in parts]
+            elif isinstance(raw_ingredients, list):
+                for entry in raw_ingredients:
+                    if isinstance(entry, dict):
+                        ingredients.append(entry)
+                    elif isinstance(entry, str):
+                        ingredients.append({"item": entry.strip(), "qty": 1.0, "unit": "count"})
+
+            recipe_uuid = str(uuid.uuid4())
+            with state.store.pool.connection() as conn:
+                conn.execute("INSERT INTO households (household_id) VALUES (%s) ON CONFLICT DO NOTHING", (state.config.household_id,))
+                conn.execute(
+                    "INSERT INTO custom_recipes (recipe_id, household_id, name, servings, prep_minutes, ingredients, steps) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s) "
+                    "ON CONFLICT (household_id, name) DO UPDATE SET "
+                    "servings = EXCLUDED.servings, prep_minutes = EXCLUDED.prep_minutes, "
+                    "ingredients = EXCLUDED.ingredients, steps = EXCLUDED.steps",
+                    (recipe_uuid, state.config.household_id, name, servings, prep_minutes,
+                     json.dumps(ingredients), json.dumps(steps))
+                )
+            nutr = calculate_meal_nutrition(ingredients)
+            kcal = round(nutr["total_kcal"] / servings, 1)
+            prot = round(nutr["total_protein_g"] / servings, 1)
+            return JSONResponse({
+                "saved": True,
+                "recipe": {
+                    "id": recipe_uuid,
+                    "name": name,
+                    "servings": servings,
+                    "prep_minutes": prep_minutes,
+                    "ingredients": ingredients,
+                    "steps": steps,
+                    "kcal_per_serving": kcal,
+                    "protein_per_serving": prot
+                }
+            })
         recipes = get_all_recipes(state.store, state.config.household_id)
         return JSONResponse({"recipes": recipes, "count": len(recipes)})
 
@@ -751,8 +806,58 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                 lambda: execute_cooking_deduction(led, recipe, servings, str(uuid.uuid4()), state.store, state.config.household_id),
                 state.config.tool_timeout_s, retry_transient=False
             )
+            state.last_cooked_meal = recipe
             state.active_cooking = None
-            return JSONResponse({"spoken_message": cook_res["spoken_message"], "meal": cook_res, "active_cooking": None})
+            msg = cook_res["spoken_message"]
+            if not recipe.get("tags") or "custom" in recipe.get("tags", []):
+                msg += " Say 'Save this as...' if you'd like to add it to your permanent recipes!"
+            return JSONResponse({"spoken_message": msg, "meal": cook_res, "active_cooking": None})
+
+        elif res.action == "save_recipe":
+            rec_name = res.context.get("recipe_name", "My Custom Recipe").strip().title()
+            ingredients = []
+            if res.items:
+                ingredients = [{"item": i.item, "qty": i.qty or 1.0, "unit": i.unit or "count"} for i in res.items]
+            elif state.active_cooking and state.active_cooking.get("recipe"):
+                ingredients = state.active_cooking["recipe"].get("ingredients", [])
+            elif state.last_cooked_meal and state.last_cooked_meal.get("ingredients"):
+                ingredients = state.last_cooked_meal.get("ingredients", [])
+
+            if not ingredients:
+                msg = f"I'd love to save '{rec_name}'! What ingredients did you use?"
+                state.pending_clarification = {"action": f"save recipe {rec_name} with"}
+                return JSONResponse({"spoken_message": msg})
+
+            recipe_uuid = str(uuid.uuid4())
+            servings = 2.0
+            prep_minutes = 15
+            with state.store.pool.connection() as conn:
+                conn.execute("INSERT INTO households (household_id) VALUES (%s) ON CONFLICT DO NOTHING", (state.config.household_id,))
+                conn.execute(
+                    "INSERT INTO custom_recipes (recipe_id, household_id, name, servings, prep_minutes, ingredients, steps) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s) "
+                    "ON CONFLICT (household_id, name) DO UPDATE SET "
+                    "servings = EXCLUDED.servings, prep_minutes = EXCLUDED.prep_minutes, "
+                    "ingredients = EXCLUDED.ingredients, steps = EXCLUDED.steps",
+                    (recipe_uuid, state.config.household_id, rec_name, servings, prep_minutes,
+                     json.dumps(ingredients), json.dumps([]))
+                )
+            nutr = calculate_meal_nutrition(ingredients)
+            kcal = round(nutr["total_kcal"] / servings, 1)
+            prot = round(nutr["total_protein_g"] / servings, 1)
+            msg = f"Saved your recipe for {rec_name}! Each serving has approximately {kcal:.0f} calories and {prot:.0f}g protein. You can ask me to cook it anytime!"
+            return JSONResponse({
+                "spoken_message": msg,
+                "saved_recipe": {
+                    "id": recipe_uuid,
+                    "name": rec_name,
+                    "ingredients": ingredients,
+                    "servings": servings,
+                    "prep_minutes": prep_minutes,
+                    "kcal_per_serving": kcal,
+                    "protein_per_serving": prot
+                }
+            })
 
         elif res.action == "query_nutrition":
             nutr = await run_blocking(lambda: get_daily_nutrition(state.store, state.config.household_id),
@@ -801,7 +906,7 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                             Route("/app.js", serve_app, methods=["GET"]),
                             Route("/api/inventory", api_inventory, methods=["GET"]),
                             Route("/api/nutrition", api_nutrition, methods=["GET"]),
-                            Route("/api/recipes", api_recipes, methods=["GET"]),
+                            Route("/api/recipes", api_recipes, methods=["GET", "POST"]),
                             Route("/api/cooking", api_cooking, methods=["GET", "POST"]),
                             Route("/api/converse", api_converse, methods=["POST"]),
                             Route("/healthz", healthz, methods=["GET"]),

@@ -97,6 +97,7 @@
           <button class="chip" data-phrase="The milk is spoiled">⚠️ Milk spoiled</button>
           <button class="chip" data-phrase="Next step">Next step ▶</button>
           <button class="chip" data-phrase="I stopped the stove">✓ Stove stopped</button>
+          <button class="chip" data-phrase="Save this as My Favorite Scramble">💾 Save as recipe</button>
           <button class="chip" data-phrase="Undo that">Undo that</button>
         </div>
 
@@ -180,6 +181,9 @@
             <div class="recipe-starter-list" id="recipe-starter-list">
               <!-- Dynamically filled with top recipes -->
             </div>
+            <div class="custom-recipe-starter-row">
+              <button class="add-custom-recipe-btn" id="open-custom-recipe-btn">+ Add Custom Family Recipe</button>
+            </div>
           </div>
 
           <div class="cooking-active-container hidden" id="cooking-active-container">
@@ -194,7 +198,10 @@
                 <h2 id="recipe-title">Spinach & Cheddar Scramble</h2>
                 <p id="recipe-desc">Fluffy scrambled eggs folded with tender baby spinach and melted cheddar.</p>
               </div>
-              <button class="exit-cooking-btn" id="exit-cooking-btn" title="Stop Cooking">✕ Stop</button>
+              <div class="recipe-banner-actions">
+                <button class="save-active-btn" id="save-active-recipe-btn" title="Save this Recipe">⭐ Save Custom</button>
+                <button class="exit-cooking-btn" id="exit-cooking-btn" title="Stop Cooking">✕ Stop</button>
+              </div>
             </div>
 
             <!-- Ingredient Prep Checklist Card -->
@@ -262,6 +269,40 @@
           <button class="alert-btn confirm" id="alert-confirm-btn">✓ Stove Stopped & Checked (Continue)</button>
           <button class="alert-btn add-time" id="alert-add-time-btn">⏱ Need 1 More Minute</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Custom Recipe Modal -->
+    <div class="custom-recipe-modal hidden" id="custom-recipe-modal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Save Custom Family Recipe</h3>
+          <button class="modal-close-btn" id="close-recipe-modal-btn">✕</button>
+        </div>
+        <form id="custom-recipe-form">
+          <div class="form-group">
+            <label for="modal-recipe-name">Recipe Name</label>
+            <input type="text" id="modal-recipe-name" placeholder="e.g. Grandma's Secret Pasta" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="modal-prep-min">Prep Time (min)</label>
+              <input type="number" id="modal-prep-min" value="15" min="1" max="240">
+            </div>
+            <div class="form-group">
+              <label for="modal-servings">Servings</label>
+              <input type="number" id="modal-servings" value="2" min="1" max="20" step="0.5">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="modal-ingredients">Ingredients (e.g. 3 eggs, 1 cup spinach, 2 oz cheddar)</label>
+            <input type="text" id="modal-ingredients" placeholder="3 eggs, 1 cup spinach, 2 oz cheddar" required>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-cancel" id="cancel-recipe-modal-btn">Cancel</button>
+            <button type="submit" class="btn-save" id="submit-custom-recipe-btn">Save to Kitchen</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>

@@ -230,6 +230,18 @@ class SousChefVoiceApp {
     this.alertConfirmBtn = document.getElementById('alert-confirm-btn');
     this.alertAddTimeBtn = document.getElementById('alert-add-time-btn');
 
+    // Custom Recipe Modal Elements
+    this.customRecipeModal = document.getElementById('custom-recipe-modal');
+    this.openCustomRecipeBtn = document.getElementById('open-custom-recipe-btn');
+    this.saveActiveRecipeBtn = document.getElementById('save-active-recipe-btn');
+    this.closeRecipeModalBtn = document.getElementById('close-recipe-modal-btn');
+    this.cancelRecipeModalBtn = document.getElementById('cancel-recipe-modal-btn');
+    this.customRecipeForm = document.getElementById('custom-recipe-form');
+    this.modalRecipeName = document.getElementById('modal-recipe-name');
+    this.modalPrepMin = document.getElementById('modal-prep-min');
+    this.modalServings = document.getElementById('modal-servings');
+    this.modalIngredients = document.getElementById('modal-ingredients');
+
     // Music Elements
     this.musicBtn = document.getElementById('music-btn');
     this.musicVol = document.getElementById('music-vol');
@@ -556,12 +568,16 @@ class SousChefVoiceApp {
 
   renderRecipeStarters() {
     this.recipeStarterList.innerHTML = '';
-    const topStarters = this.allRecipes.slice(0, 4);
+    const topStarters = this.allRecipes.slice(0, 6);
     topStarters.forEach(rec => {
       const card = document.createElement('div');
       card.className = 'recipe-start-card';
+      const customTag = (rec.tags && rec.tags.includes('custom')) ? '<span class="custom-recipe-tag">Family</span>' : '';
       card.innerHTML = `
-        <span class="recipe-start-name">${escapeHtml(rec.name)}</span>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="recipe-start-name">${escapeHtml(rec.name)}</span>
+          ${customTag}
+        </div>
         <div class="recipe-start-meta">
           <span>⏱️ ${rec.prep_minutes} min</span>
           <span>🍽️ ${rec.servings} serv</span>
@@ -573,6 +589,81 @@ class SousChefVoiceApp {
       });
       this.recipeStarterList.appendChild(card);
     });
+  }
+
+  openRecipeModal(prefill = null) {
+    if (!this.customRecipeModal) return;
+    this.customRecipeModal.classList.remove('hidden');
+    if (prefill) {
+      if (prefill.name) this.modalRecipeName.value = prefill.name;
+      if (prefill.prep_minutes) this.modalPrepMin.value = prefill.prep_minutes;
+      if (prefill.servings) this.modalServings.value = prefill.servings;
+      if (prefill.ingredients) {
+        if (Array.isArray(prefill.ingredients)) {
+          this.modalIngredients.value = prefill.ingredients
+            .map(i => `${i.qty || ''} ${i.unit || ''} ${i.item || ''}`.trim())
+            .join(', ');
+        } else {
+          this.modalIngredients.value = prefill.ingredients;
+        }
+      }
+    } else if (this.activeCooking && this.activeCooking.recipe) {
+      const r = this.activeCooking.recipe;
+      this.modalRecipeName.value = `${r.name} (Custom)`;
+      this.modalPrepMin.value = r.prep_minutes || 15;
+      this.modalServings.value = this.activeCooking.servings || r.servings || 2;
+      this.modalIngredients.value = (r.ingredients || [])
+        .map(i => `${i.qty || ''} ${i.unit || ''} ${i.item || ''}`.trim())
+        .join(', ');
+    } else {
+      this.modalRecipeName.value = '';
+      this.modalPrepMin.value = 15;
+      this.modalServings.value = 2;
+      this.modalIngredients.value = '';
+    }
+    this.modalRecipeName.focus();
+  }
+
+  closeRecipeModal() {
+    if (this.customRecipeModal) {
+      this.customRecipeModal.classList.add('hidden');
+    }
+  }
+
+  async handleSaveCustomRecipe(e) {
+    e.preventDefault();
+    const name = this.modalRecipeName.value.trim();
+    if (!name) return;
+    const prep_minutes = parseInt(this.modalPrepMin.value) || 15;
+    const servings = parseFloat(this.modalServings.value) || 2.0;
+    const ingredients = this.modalIngredients.value.trim();
+
+    try {
+      const res = await fetch('/api/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          prep_minutes,
+          servings,
+          ingredients
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const saved = data.recipe;
+        this.closeRecipeModal();
+        const msg = `Saved your custom family recipe for ${saved.name}! Approximately ${Math.round(saved.kcal_per_serving)} calories and ${Math.round(saved.protein_per_serving)}g protein per serving.`;
+        this.appendTranscript('assistant', msg);
+        this.speak(msg);
+        await this.fetchRecipes();
+      } else {
+        const err = await res.json();
+        alert('Could not save recipe: ' + (err.error || 'Server error'));
+      }
+    } catch (err) {
+      console.error('Save recipe failed:', err);
+    }
   }
 
   async startRecipe(recipeId) {
@@ -1000,6 +1091,23 @@ class SousChefVoiceApp {
     });
 
     this.exitCookingBtn.addEventListener('click', () => this.stopCooking());
+
+    // Custom Recipe Modal Listeners
+    if (this.openCustomRecipeBtn) {
+      this.openCustomRecipeBtn.addEventListener('click', () => this.openRecipeModal());
+    }
+    if (this.saveActiveRecipeBtn) {
+      this.saveActiveRecipeBtn.addEventListener('click', () => this.openRecipeModal());
+    }
+    if (this.closeRecipeModalBtn) {
+      this.closeRecipeModalBtn.addEventListener('click', () => this.closeRecipeModal());
+    }
+    if (this.cancelRecipeModalBtn) {
+      this.cancelRecipeModalBtn.addEventListener('click', () => this.closeRecipeModal());
+    }
+    if (this.customRecipeForm) {
+      this.customRecipeForm.addEventListener('submit', (e) => this.handleSaveCustomRecipe(e));
+    }
 
     // Timer Alert Modal Buttons
     this.alertConfirmBtn.addEventListener('click', () => this.confirmTimerAction());

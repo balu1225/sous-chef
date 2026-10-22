@@ -181,3 +181,10 @@ If Alexa+ console access is unavailable or CLI deploy fails, switch immediately 
   - Registered FastMCP tool `get_cooking_remedy` (read-only, idempotent).
   - Added "🆘 Did it wrong?" quick shortcut chips and rich visual rescue cards to web companion transcript.
   - Expanded test suite: **56/56 automated tests passing in 11.06s**.
+- **2026-10-21 20:15:** Implemented In-Cooking & Post-Cooking Custom Recipe Creation (`matching.py`, `amount_parser.py`, `server.py`, `web_simulator`):
+  - **Dynamic In-Cooking / Post-Cooking Saving:** Users can say *"Save this recipe as..."* while cooking or *"Save what I cooked as..."* right after completing a meal to inherit all active ingredients without re-dictating.
+  - **Ad-Hoc Voice Saving:** Dictating *"Save recipe Spicy Eggs with 3 eggs, 1 cup spinach, and 2 oz cheddar"* parses items, calculates USDA nutrition macros, and persists to PostgreSQL `custom_recipes`.
+  - **Web Companion Modal UI:** "+ Add Custom Family Recipe" button opens responsive modal with prep minutes, servings, and auto-macro calculation; custom recipes appear in the starter carousel with a distinct "Family" badge.
+  - **Smart Cross-Unit Cooking Deductions:** Upgraded `execute_cooking_deduction` to dynamically translate recipe volume/mass/count units to the inventory item's tracked base unit using canonical USDA densities.
+  - **All 58/58 automated tests passing in 11.86s.**
+

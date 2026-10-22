@@ -93,3 +93,31 @@ def test_kitchen_mishap_intents():
         assert res.context.get("mishap_type") == expected_type, f"Failed type for '{utterance}'"
 
 
+def test_save_recipe_intents():
+    # Contextual saving during or after cooking
+    res1 = parse_kitchen_utterance("save this recipe as spicy scramble")
+    assert res1.action == "save_recipe"
+    assert res1.context.get("recipe_name") == "spicy scramble"
+    assert len(res1.items) == 0
+
+    res2 = parse_kitchen_utterance("save what i cooked as quick lunch")
+    assert res2.action == "save_recipe"
+    assert res2.context.get("recipe_name") == "quick lunch"
+    assert len(res2.items) == 0
+
+    res3 = parse_kitchen_utterance("save this as mom's omelet")
+    assert res3.action == "save_recipe"
+    assert "mom" in res3.context.get("recipe_name")
+    assert len(res3.items) == 0
+
+    # Explicit ingredient specification
+    res4 = parse_kitchen_utterance("save recipe spicy eggs with 3 eggs 1 cup spinach and 2 oz cheddar")
+    assert res4.action == "save_recipe"
+    assert res4.context.get("recipe_name") == "spicy eggs"
+    item_names = {i.item for i in res4.items}
+    assert "eggs" in item_names
+    assert "spinach" in item_names
+    assert "cheddar" in item_names
+
+
+

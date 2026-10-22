@@ -446,3 +446,47 @@ def test_get_cooking_remedy_tool_and_dialogue(server, db):
     assert salt_data["remedy"]["type"] == "too_salty"
 
 
+def test_save_custom_recipe_flow(server, db):
+    headers = {"Authorization": f"Bearer {TOKEN}"}
+
+    # 1. Test POST /api/recipes with string ingredients (from web companion form)
+    form_res = httpx.post(
+        f"{server.base}/api/recipes",
+        json={
+            "name": "Grandma's High-Protein Scramble",
+            "prep_minutes": 10,
+            "servings": 2,
+            "ingredients": "3 eggs, 1 cup spinach, 2 oz cheddar"
+        },
+        headers=headers
+    )
+    assert form_res.status_code == 200
+    data = form_res.json()
+    assert data["saved"] is True
+    assert data["recipe"]["name"] == "Grandma's High-Protein Scramble"
+    assert data["recipe"]["kcal_per_serving"] > 0
+    assert data["recipe"]["protein_per_serving"] > 0
+
+    # Verify recipe is now in GET /api/recipes
+    get_res = httpx.get(f"{server.base}/api/recipes", headers=headers)
+    assert get_res.status_code == 200
+    recipes = get_res.json()["recipes"]
+    assert any(r["name"] == "Grandma's High-Protein Scramble" for r in recipes)
+
+    # 2. Test saving by voice after cooking a meal:
+    seed(db)
+    # Start and finish cooking a recipe
+    cook_res = httpx.post(f"{server.base}/api/converse", json={"utterance": "I cooked Spinach & Cheddar Scramble"}, headers=headers)
+    assert cook_res.status_code == 200
+
+    # User says: "Save what I cooked as Post-Workout Fuel"
+    save_voice_res = httpx.post(f"{server.base}/api/converse", json={"utterance": "save what i cooked as Post-Workout Fuel"}, headers=headers)
+    assert save_voice_res.status_code == 200
+    save_data = save_voice_res.json()
+    assert "saved_recipe" in save_data
+    assert save_data["saved_recipe"]["name"] == "Post-Workout Fuel"
+    assert len(save_data["saved_recipe"]["ingredients"]) > 0
+    assert "Saved your recipe for Post-Workout Fuel" in save_data["spoken_message"]
+
+
+

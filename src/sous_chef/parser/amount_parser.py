@@ -120,10 +120,22 @@ KNOWN_ITEMS = [
     ("cheese", "fridge", "mass"),
     ("white rice", "pantry", "mass"),
     ("rice", "pantry", "mass"),
+    ("pasta", "pantry", "mass"),
+    ("spaghetti", "pantry", "mass"),
     ("black beans", "pantry", "count"),
     ("crushed tomatoes", "pantry", "count"),
+    ("tomatoes", "pantry", "count"),
+    ("tomato", "pantry", "count"),
     ("olive oil", "pantry", "volume"),
     ("butter", "fridge", "mass"),
+    ("garlic", "pantry", "count"),
+    ("onion", "pantry", "count"),
+    ("mushrooms", "fridge", "mass"),
+    ("mushroom", "fridge", "mass"),
+    ("bread", "pantry", "count"),
+    ("potatoes", "pantry", "count"),
+    ("potato", "pantry", "count"),
+    ("yogurt", "fridge", "volume"),
     ("apples", "pantry", "count"),
     ("apple", "pantry", "count"),
     ("bananas", "pantry", "count"),
@@ -204,9 +216,45 @@ def parse_kitchen_utterance(text: str) -> ParseResult:
         return ParseResult(action="check_prep_item", items=[], context={"checked_item": item_text})
 
     cook_match = re.search(r"\b(?:i made|i cooked|finished cooking|i m done cooking|i am done cooking)\s*([a-z\s]*)?", clean)
-    if cook_match and not any(q in clean for q in ["what can i make", "what should i make"]):
+    if cook_match and not any(q in clean for q in ["what can i make", "what should i make", "save"]):
         recipe_name = (cook_match.group(1) or "").strip()
         return ParseResult(action="cook_recipe", items=[], context={"recipe_name": recipe_name})
+
+    save_match = re.search(
+        r"\b(?:save (?:this )?(?:recipe )?(?:called |as )|save what i (?:cooked|made) as |save recipe )\s*['\"]?([a-z0-9\s\-_]+?)['\"]?(?:\s+(?:with|having|using)\s+(.+))?$",
+        clean
+    )
+    if save_match:
+        recipe_name = save_match.group(1).strip()
+        tail = save_match.group(2) or ""
+        save_items: list[ParsedItem] = []
+        target_text = tail.strip()
+        if target_text:
+            found_items: list[tuple[int, str, str, str]] = []
+            for name, zone, family in KNOWN_ITEMS:
+                pattern = r"\b" + re.escape(name) + r"\b"
+                match = re.search(pattern, target_text)
+                if match:
+                    found_items.append((match.start(), name, zone, family))
+
+            filtered_items: list[tuple[int, str, str, str]] = []
+            found_items.sort(key=lambda x: (x[0], -len(x[1])))
+            covered_ranges: list[tuple[int, int]] = []
+            for start, name, zone, family in found_items:
+                end = start + len(name)
+                if any(cs <= start and end <= ce for cs, ce in covered_ranges):
+                    continue
+                covered_ranges.append((start, end))
+                filtered_items.append((start, name, zone, family))
+            filtered_items.sort(key=lambda x: x[0])
+
+            for i, (start_idx, name, zone, family) in enumerate(filtered_items):
+                prev_end = filtered_items[i - 1][0] + len(filtered_items[i - 1][1]) if i > 0 else 0
+                context_window = target_text[prev_end:start_idx].strip()
+                qty, unit = _extract_qty_and_unit(context_window, target_text[start_idx:])
+                save_items.append(ParsedItem(item=name, qty=qty or 1.0, unit=unit or "count", zone=zone))
+
+        return ParseResult(action="save_recipe", items=save_items, context={"recipe_name": recipe_name})
 
     # 4. Kitchen Mishaps & Funny Culinary Remedies ("Did it wrong")
     if any(q in clean for q in ["burned it", "i burned", "food burned", "burned the", "pan is smoking", "is smoking", "it charred", "burnt", "charred", "smells burnt"]):

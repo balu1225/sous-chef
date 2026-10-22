@@ -15,7 +15,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
 
-from sous_chef.nutrition import calculate_meal_nutrition, lookup_canonical
+from sous_chef.nutrition import calculate_item_macros, calculate_meal_nutrition, lookup_canonical
 from sous_chef.ledger import Ledger, LedgerError, Store
 
 SEED_FILE = Path(__file__).resolve().parent / "data" / "seed_recipes.json"
@@ -291,14 +291,37 @@ def execute_cooking_deduction(
 
         if matched_row:
             current_qty = float(matched_row["qty"])
-            # Clamping logic (E6)
-            deduct_qty = min(current_qty, needed_qty)
+            stock_unit = matched_row.get("unit", "count")
+
+            # Check unit compatibility between recipe ingredient and inventory stock row
+            canon_entry = lookup_canonical(name)
+            entry_data = canon_entry[1] if canon_entry else {}
+            needed_macros = calculate_item_macros(name, needed_qty, unit)
+            needed_grams = needed_macros["grams"]
+
+            if stock_unit == "g":
+                deduct_qty = min(current_qty, round(needed_grams, 2))
+                deduct_unit = "g"
+            elif stock_unit == "ml":
+                density = entry_data.get("density_g_per_ml", 1.0)
+                ml_needed = needed_grams / density if density else needed_grams
+                deduct_qty = min(current_qty, round(ml_needed, 2))
+                deduct_unit = "ml"
+            elif stock_unit in ("count", "item"):
+                avg_w = entry_data.get("avg_weight_g", 1.0)
+                count_needed = needed_grams / avg_w if avg_w else needed_qty
+                deduct_qty = min(current_qty, round(count_needed, 1))
+                deduct_unit = "count"
+            else:
+                deduct_qty = min(current_qty, needed_qty)
+                deduct_unit = stock_unit
+
             if deduct_qty > 0:
                 ops.append({
                     "type": "consume",
                     "item": matched_row["item"],
                     "qty": deduct_qty,
-                    "unit": unit
+                    "unit": deduct_unit
                 })
                 deducted_names.append(matched_row["item"])
                 if deduct_qty >= current_qty:

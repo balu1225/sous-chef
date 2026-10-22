@@ -893,6 +893,29 @@ body {
   line-height: 1.35;
 }
 
+.recipe-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.save-active-btn {
+  background: rgba(0, 202, 224, 0.12);
+  border: 1px solid rgba(0, 202, 224, 0.35);
+  color: var(--cyan-primary);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.save-active-btn:hover {
+  background: rgba(0, 202, 224, 0.25);
+  color: #ffffff;
+}
+
 .exit-cooking-btn {
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
@@ -1398,5 +1421,170 @@ body {
   border-left: 3px solid var(--amber-warning);
   line-height: 1.35;
 }
+
+/* ==========================================================================
+   Custom Recipe Creation Modal & Buttons
+   ========================================================================== */
+.custom-recipe-tag {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.custom-recipe-starter-row {
+  margin-top: 14px;
+  width: 100%;
+}
+
+.add-custom-recipe-btn {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(0, 202, 224, 0.08);
+  border: 1px dashed rgba(0, 202, 224, 0.4);
+  border-radius: var(--radius-sm);
+  color: var(--cyan-primary);
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-custom-recipe-btn:hover {
+  background: rgba(0, 202, 224, 0.16);
+  border-color: var(--cyan-primary);
+  transform: translateY(-1px);
+}
+
+.custom-recipe-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 15, 0.85);
+  backdrop-filter: blur(16px);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  animation: fadeIn 0.25s ease;
+}
+
+.custom-recipe-modal.hidden {
+  display: none !important;
+}
+
+.modal-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.modal-close-btn:hover {
+  color: #ffffff;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.form-group label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.form-group input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.form-group input:focus {
+  border-color: var(--cyan-primary);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.btn-cancel {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-glass);
+  color: var(--text-muted);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+.btn-save {
+  background: linear-gradient(135deg, var(--cyan-primary), #0284c7);
+  border: none;
+  color: #04101e;
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-save:hover {
+  box-shadow: 0 0 20px var(--cyan-glow);
+}
+
 
 
