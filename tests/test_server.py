@@ -531,7 +531,7 @@ def test_alexa_skills_kit_integration(server, db):
     launch_body = launch_res.json()
     assert launch_body["version"] == "1.0"
     assert "outputSpeech" in launch_body["response"]
-    assert "Welcome to Sous-Chef" in launch_body["response"]["outputSpeech"]["text"]
+    assert "Welcome to Shadow Chef" in launch_body["response"]["outputSpeech"]["text"]
     assert launch_body["response"]["shouldEndSession"] is False
     assert "card" in launch_body["response"]
 

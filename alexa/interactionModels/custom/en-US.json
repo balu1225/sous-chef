@@ -1,7 +1,7 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "sous chef",
+      "invocationName": "shadow chef",
       "intents": [
         {
           "name": "AMAZON.CancelIntent",
@@ -47,6 +47,10 @@
         },
         {
           "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
           "samples": []
         },
         {
@@ -188,7 +192,10 @@
             { "name": { "value": "finished" } },
             { "name": { "value": "made it" } },
             { "name": { "value": "check" } },
-            { "name": { "value": "repeat" } }
+            { "name": { "value": "repeat" } },
+            { "name": { "value": "prev" } },
+            { "name": { "value": "previous" } },
+            { "name": { "value": "back" } }
           ]
         }
       ]

@@ -613,7 +613,7 @@ class SousChefVoiceApp {
       this.lyricsViewport.innerHTML = `
         <div class="lyric-line active" data-step-index="0">
           <div class="lyric-badge">Welcome</div>
-          <div class="lyric-text">Say "Alexa, ask Sous-Chef what can I cook" or pick a recipe from the Cookbook tab to begin!</div>
+          <div class="lyric-text">Say "Alexa, ask Shadow Chef what can I cook" or pick a recipe from the Cookbook tab to begin!</div>
         </div>
       `;
       this.resetStepTimer();
@@ -932,8 +932,8 @@ class SousChefVoiceApp {
 
   shareRecipe(recipe) {
     const shareData = {
-      title: `Sous-Chef Recipe: ${recipe.name}`,
-      text: `Try cooking ${recipe.name}! Ready in ${recipe.prep_minutes || 15} minutes with Sous-Chef on Alexa.`,
+      title: `Shadow Chef Recipe: ${recipe.name}`,
+      text: `Try cooking ${recipe.name}! Ready in ${recipe.prep_minutes || 15} minutes with Shadow Chef on Alexa.`,
       url: window.location.origin + `/?recipe=${encodeURIComponent(recipe.id || recipe.name)}`
     };
 

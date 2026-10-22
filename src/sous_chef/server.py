@@ -792,9 +792,9 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
 
             if req_type == "LaunchRequest":
                 return JSONResponse(make_alexa_response(
-                    speech_text="Welcome to Sous-Chef! I can track your groceries, suggest meals with what's in your fridge, guide your cooking step-by-step, or rescue mishaps. What would you like to cook?",
-                    card_title="Sous-Chef Voice Assistant",
-                    card_content="Welcome to Sous-Chef!\n\nTry saying:\n• 'What can I make in 15 minutes?'\n• 'What is in my kitchen?'\n• 'I bought 2 eggs'\n• 'I burned the food'",
+                    speech_text="Welcome to Shadow Chef! I'm the silent culinary intelligence taking care of your kitchen. I can track your groceries, suggest meals with what's in your fridge, guide your cooking step-by-step, or rescue mishaps. What would you like to cook?",
+                    card_title="Shadow Chef Voice Assistant",
+                    card_content="Welcome to Shadow Chef!\n\nTry saying:\n• 'What can I make in 15 minutes?'\n• 'What is in my kitchen?'\n• 'I bought 2 eggs'\n• 'I burned the food'",
                     reprompt_text="You can ask: what can I cook for dinner, or what is in my kitchen."
                 ))
 
@@ -807,12 +807,12 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                 slots = intent.get("slots", {}) or {}
 
                 if intent_name in ("AMAZON.StopIntent", "AMAZON.CancelIntent"):
-                    return JSONResponse(make_alexa_response("Happy cooking with Sous-Chef! Goodbye.", end_session=True))
+                    return JSONResponse(make_alexa_response("Happy cooking with Shadow Chef! Goodbye.", end_session=True))
 
                 if intent_name == "AMAZON.HelpIntent":
                     return JSONResponse(make_alexa_response(
                         speech_text="You can tell me what groceries you bought, ask what's in your fridge, ask for quick recipe ideas, or say 'help I burned the food' if you have a mishap. What would you like to do?",
-                        card_title="Sous-Chef Help",
+                        card_title="Shadow Chef Help",
                         card_content="Try saying:\n• 'What can I make for dinner?'\n• 'What's in my fridge?'\n• 'I bought 1 gallon of milk'\n• 'The milk is spoiled'\n• 'How many calories did I eat?'",
                         reprompt_text="What would you like to do?"
                     ))
@@ -865,7 +865,7 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                         if state.is_screen_active():
                             screen_hint = "You can see the full recipe steps and timer right on your screen. Say 'next' when you're ready to start step 1."
                         else:
-                            screen_hint = "Open and check, I have shared the recipe steps with your Sous-Chef screen companion. Would you like me to read Step 1 out loud?"
+                            screen_hint = "Open and check, I have shared the recipe steps with your Shadow Chef screen companion. Would you like me to read Step 1 out loud?"
                         msg = f"{match_res['spoken_message']} {screen_hint}"
                     else:
                         msg = match_res["spoken_message"]
@@ -970,7 +970,7 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                             state.active_cooking["step"] -= 1
                         prev_s = steps[state.active_cooking["step"] - 1]
                         timer_hint = f" Set a {prev_s['timer_seconds'] // 60} minute timer if needed." if prev_s.get("timer_seconds") else ""
-                        screen_hint = "You can see the step on your screen." if state.is_screen_active() else "Follow along on your Sous-Chef screen."
+                        screen_hint = "You can see the step on your screen." if state.is_screen_active() else "Follow along on your Shadow Chef screen."
                         msg = f"Going back to Step {state.active_cooking['step']}: {prev_s['instruction']}{timer_hint} {screen_hint}"
                         return JSONResponse(make_alexa_response(
                             msg,
@@ -988,7 +988,7 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                             if state.is_screen_active():
                                 screen_hint = "You can see the step and timer on your screen."
                             else:
-                                screen_hint = "Open and check your Sous-Chef screen companion anytime to follow along."
+                                screen_hint = "Open and check your Shadow Chef screen companion anytime to follow along."
                             msg = f"Step {state.active_cooking['step']}: {next_s['instruction']}{timer_hint} {screen_hint}"
                         else:
                             msg = f"That was the final step for {recipe['name']}! Say 'I'm done' or 'I made it' to deduct the ingredients and log your nutrition."
@@ -1152,7 +1152,7 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                 if state.is_screen_active():
                     screen_hint = "You can see the full recipe steps and timer right on your screen."
                 else:
-                    screen_hint = "Open and check, I have shared the recipe steps with your Sous-Chef screen companion."
+                    screen_hint = "Open and check, I have shared the recipe steps with your Shadow Chef screen companion."
                 spoken = f"{match_res['spoken_message']} {screen_hint}"
             else:
                 spoken = match_res["spoken_message"]
