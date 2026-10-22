@@ -280,6 +280,7 @@ class SousChefVoiceApp {
     this.initSpeechRecognition();
     this.initEventListeners();
     this.initPWA();
+    this.startPresenceHeartbeat();
 
     // Initial Data Fetch
     this.fetchCookingState();
@@ -551,9 +552,116 @@ class SousChefVoiceApp {
     }
   }
 
+  applyDishPalette(dishName, ingredients = []) {
+    const ingText = Array.isArray(ingredients)
+      ? ingredients.map(i => (typeof i === 'string' ? i : (i.item || i.name || ''))).join(' ')
+      : String(ingredients || '');
+    const text = (dishName + ' ' + ingText).toLowerCase();
+
+    let palette = {
+      hue: 38,
+      primary: '#f59e0b',
+      secondary: '#d97706',
+      aura: 'rgba(245, 158, 11, 0.24)',
+      glow: 'rgba(245, 158, 11, 0.45)',
+      accentBg: 'rgba(245, 158, 11, 0.12)'
+    };
+
+    if (/salad|greens|kale|spinach|pesto|herb|avocado|cucumber|bowl/.test(text)) {
+      // Emerald / Mint
+      palette = {
+        hue: 158,
+        primary: '#10b981',
+        secondary: '#059669',
+        aura: 'rgba(16, 185, 129, 0.22)',
+        glow: 'rgba(16, 185, 129, 0.40)',
+        accentBg: 'rgba(16, 185, 129, 0.12)'
+      };
+    } else if (/pasta|spaghetti|marinara|tomato|pizza|lasagna|bolognese/.test(text)) {
+      // Roasted Terracotta
+      palette = {
+        hue: 347,
+        primary: '#e11d48',
+        secondary: '#be123c',
+        aura: 'rgba(225, 29, 72, 0.24)',
+        glow: 'rgba(225, 29, 72, 0.42)',
+        accentBg: 'rgba(225, 29, 72, 0.12)'
+      };
+    } else if (/curry|spicy|chili|taco|fajita|stir fry|pepper|masala|roast/.test(text)) {
+      // Fiery Smoked Chili
+      palette = {
+        hue: 20,
+        primary: '#ea580c',
+        secondary: '#c2410c',
+        aura: 'rgba(234, 88, 12, 0.25)',
+        glow: 'rgba(234, 88, 12, 0.45)',
+        accentBg: 'rgba(234, 88, 12, 0.12)'
+      };
+    } else if (/salmon|fish|tuna|shrimp|seafood|cod/.test(text)) {
+      // Pacific Azure
+      palette = {
+        hue: 189,
+        primary: '#06b6d4',
+        secondary: '#0891b2',
+        aura: 'rgba(6, 182, 212, 0.22)',
+        glow: 'rgba(6, 182, 212, 0.40)',
+        accentBg: 'rgba(6, 182, 212, 0.12)'
+      };
+    } else if (/berry|smoothie|acai|oat|dessert|cake|cookie|pancake/.test(text)) {
+      // Blackberry Plum / Violet
+      palette = {
+        hue: 260,
+        primary: '#8b5cf6',
+        secondary: '#6d28d9',
+        aura: 'rgba(139, 92, 246, 0.22)',
+        glow: 'rgba(139, 92, 246, 0.40)',
+        accentBg: 'rgba(139, 92, 246, 0.12)'
+      };
+    }
+
+    const root = document.documentElement;
+    root.style.setProperty('--dish-hue', palette.hue);
+    root.style.setProperty('--dish-primary', palette.primary);
+    root.style.setProperty('--dish-secondary', palette.secondary);
+    root.style.setProperty('--dish-aura', palette.aura);
+    root.style.setProperty('--dish-glow', palette.glow);
+    root.style.setProperty('--dish-accent-bg', palette.accentBg);
+  }
+
+  startPresenceHeartbeat() {
+    const sendPresence = (status) => {
+      try {
+        fetch('/api/presence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: status || 'active', client: 'web_screen' })
+        }).catch(() => {});
+      } catch (e) {}
+    };
+
+    // Ping immediately
+    sendPresence('active');
+
+    // Ping every 8 seconds
+    setInterval(() => sendPresence('active'), 8000);
+
+    // Track tab visibility
+    document.addEventListener('visibilitychange', () => {
+      sendPresence(document.visibilityState === 'visible' ? 'active' : 'inactive');
+    });
+
+    // Notify closed on page unload
+    window.addEventListener('beforeunload', () => {
+      try {
+        navigator.sendBeacon('/api/presence', JSON.stringify({ status: 'closed', client: 'web_screen' }));
+      } catch (e) {}
+    });
+  }
+
   renderCookingStage() {
     if (!this.activeCooking || !this.activeCooking.recipe) {
       // Default placeholder view
+      this.applyDishPalette("Spinach & Cheddar Scramble", ["eggs", "spinach", "cheddar"]);
       this.dishName.textContent = "Spinach & Cheddar Scramble";
       this.dishSub.textContent = "10 min · 2 servings · ~320 kcal";
       this.dishArtworkEmoji.textContent = "🍳";
@@ -565,6 +673,7 @@ class SousChefVoiceApp {
         </div>
       `;
       this.resetStepTimer();
+      if (this.finishMealBtn) this.finishMealBtn.classList.add('hidden');
       return;
     }
 
@@ -576,16 +685,22 @@ class SousChefVoiceApp {
     const activeStepIdx = Math.max(1, Math.min(step || 1, totalSteps));
     const activeStepObj = steps[activeStepIdx - 1] || {};
 
+    // Apply dynamic culinary palette
+    this.applyDishPalette(recipe.name, recipe.ingredients || []);
+
     // 1. Hero Left Column
     this.dishName.textContent = recipe.name;
     this.dishSub.textContent = `${recipe.prep_minutes || 15} min · ${currentServings} servings · ~${Math.round((recipe.kcal_per_serving || 320) * multiplier)} kcal`;
     this.dishArtworkEmoji.textContent = this.getItemEmoji(recipe.name);
 
-    // Update active scale chip
-    document.querySelectorAll('.scale-chip').forEach(chip => {
-      const s = parseFloat(chip.dataset.scale);
-      chip.classList.toggle('active', Math.abs(s - currentServings) < 0.1);
-    });
+    // Toggle finish button visibility only on final step
+    if (this.finishMealBtn) {
+      if (activeStepIdx === totalSteps) {
+        this.finishMealBtn.classList.remove('hidden');
+      } else {
+        this.finishMealBtn.classList.add('hidden');
+      }
+    }
 
     // 2. Lyrics Viewport (Apple Music Synchronized Stream)
     this.streamStatusLabel.textContent = `STEP ${activeStepIdx} OF ${totalSteps}`;
@@ -1180,8 +1295,8 @@ class SousChefVoiceApp {
       }
     });
 
-    // Star Recipe
-    this.starRecipeBtn.addEventListener('click', () => {
+    // Star Recipe (if present)
+    this.starRecipeBtn?.addEventListener('click', () => {
       this.starRecipeBtn.classList.toggle('starred');
     });
 

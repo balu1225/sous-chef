@@ -69,7 +69,7 @@ INSTRUCTIONS = (
 
 PUBLIC_PATHS = frozenset({"/healthz", "/readyz", "/", "/style.css", "/app.js",
                           "/api/inventory", "/api/inventory/move", "/api/converse",
-                          "/api/nutrition", "/api/recipes", "/api/cooking"})
+                          "/api/nutrition", "/api/recipes", "/api/cooking", "/api/presence"})
 
 
 @dataclass
@@ -79,6 +79,12 @@ class State:
     pending_clarification: dict | None = None
     active_cooking: dict | None = None
     last_cooked_meal: dict | None = None
+    last_screen_presence: float = 0.0
+    screen_active: bool = False
+
+    def is_screen_active(self) -> bool:
+        import time
+        return self.screen_active and (time.time() - self.last_screen_presence < 25.0)
 
 
 
@@ -559,6 +565,25 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
             "warning": warning
         })
 
+    async def api_presence(request: Request) -> JSONResponse:
+        import time
+        body = await request.json() if request.method == "POST" else {}
+        status = (body.get("status") or "active").strip().lower()
+        now = time.time()
+        if status in ("closed", "inactive"):
+            state.screen_active = False
+            state.last_screen_presence = 0.0
+        else:
+            state.screen_active = True
+            state.last_screen_presence = now
+
+        return JSONResponse({
+            "ok": True,
+            "status": status,
+            "screen_active": state.is_screen_active(),
+            "timestamp": now
+        })
+
     async def api_nutrition(_: Request) -> JSONResponse:
         if state.store is None:
             return JSONResponse({"date": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "total_kcal": 0, "total_protein_g": 0, "meals_logged": 0})
@@ -780,7 +805,11 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                         }
                         ing_lines = "\n".join(f"• {i['qty']} {i['unit']} {i['item']}" for i in top.get("ingredients", []))
                         card_txt = f"Recipe: {top['name']}\nPrep: {top.get('prep_minutes', 15)} mins | Servings: {top.get('servings', 2)}\n\nIngredients:\n{ing_lines}"
-                        msg = f"{match_res['spoken_message']} Say 'next' when you're ready to start step 1."
+                        if state.is_screen_active():
+                            screen_hint = "You can see the full recipe steps and timer right on your screen. Say 'next' when you're ready to start step 1."
+                        else:
+                            screen_hint = "Open and check, I have shared the recipe steps with your Sous-Chef screen companion. Would you like me to read Step 1 out loud?"
+                        msg = f"{match_res['spoken_message']} {screen_hint}"
                     else:
                         msg = match_res["spoken_message"]
                         card_txt = msg
@@ -884,7 +913,11 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                             state.active_cooking["step"] += 1
                             next_s = steps[state.active_cooking["step"] - 1]
                             timer_hint = f" Set a {next_s['timer_seconds'] // 60} minute timer if needed." if next_s.get("timer_seconds") else ""
-                            msg = f"Step {state.active_cooking['step']}: {next_s['instruction']}{timer_hint}"
+                            if state.is_screen_active():
+                                screen_hint = "You can see the step and timer on your screen."
+                            else:
+                                screen_hint = "Open and check your Sous-Chef screen companion anytime to follow along."
+                            msg = f"Step {state.active_cooking['step']}: {next_s['instruction']}{timer_hint} {screen_hint}"
                         else:
                             msg = f"That was the final step for {recipe['name']}! Say 'I'm done' or 'I made it' to deduct the ingredients and log your nutrition."
                         return JSONResponse(make_alexa_response(
@@ -1044,11 +1077,20 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                     "checked_prep": [],
                     "servings": top.get("servings", 2)
                 }
+                if state.is_screen_active():
+                    screen_hint = "You can see the full recipe steps and timer right on your screen."
+                else:
+                    screen_hint = "Open and check, I have shared the recipe steps with your Sous-Chef screen companion."
+                spoken = f"{match_res['spoken_message']} {screen_hint}"
+            else:
+                spoken = match_res["spoken_message"]
+
             return JSONResponse({
-                "spoken_message": match_res["spoken_message"],
+                "spoken_message": spoken,
                 "recipe": top,
                 "suggestions": match_res.get("suggestions", []),
-                "active_cooking": state.active_cooking
+                "active_cooking": state.active_cooking,
+                "screen_active": state.is_screen_active()
             })
 
         elif res.action == "kitchen_mishap":
@@ -1332,6 +1374,7 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                             Route("/api/nutrition", api_nutrition, methods=["GET"]),
                             Route("/api/recipes", api_recipes, methods=["GET", "POST"]),
                             Route("/api/cooking", api_cooking, methods=["GET", "POST"]),
+                            Route("/api/presence", api_presence, methods=["GET", "POST"]),
                             Route("/api/converse", api_converse, methods=["POST"]),
                             Route("/alexa", api_converse, methods=["POST"]),
                             Route("/healthz", healthz, methods=["GET"]),

@@ -40,6 +40,14 @@
 
   --ease-apple-spring: cubic-bezier(0.16, 1, 0.3, 1);
   --duration-fluid: 0.35s;
+
+  /* Dynamic Culinary Palette Tokens (Default: Golden Saffron / Amber) */
+  --dish-hue: 38;
+  --dish-primary: #f59e0b;
+  --dish-secondary: #d97706;
+  --dish-aura: rgba(245, 158, 11, 0.22);
+  --dish-glow: rgba(245, 158, 11, 0.40);
+  --dish-accent-bg: rgba(245, 158, 11, 0.12);
 }
 
 /* --------------------------------------------------------------------------
@@ -92,9 +100,9 @@ input {
   z-index: 0;
   pointer-events: none;
   background: 
-    radial-gradient(circle at 25% 40%, rgba(255, 45, 85, 0.16) 0%, transparent 60%),
-    radial-gradient(circle at 75% 60%, rgba(10, 132, 255, 0.14) 0%, transparent 60%),
-    radial-gradient(circle at 50% 85%, rgba(48, 209, 88, 0.10) 0%, transparent 60%),
+    radial-gradient(circle at 25% 40%, var(--dish-aura) 0%, transparent 60%),
+    radial-gradient(circle at 75% 60%, rgba(20, 20, 32, 0.6) 0%, transparent 60%),
+    radial-gradient(circle at 50% 85%, var(--dish-glow) 0%, transparent 70%),
     #09090b;
   filter: blur(80px);
   transform: scale(1.1);
@@ -133,36 +141,28 @@ input {
   z-index: 20;
 }
 
-/* Traffic Lights */
-.window-traffic-lights {
+/* Brand Badge (Clean, Modern Kitchen Assistant Brand) */
+.brand-badge {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
-.light {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  opacity: 0.85;
-  transition: opacity 0.2s ease;
+.brand-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 8px var(--dish-aura));
+  transition: filter 0.8s ease;
 }
 
-.window-traffic-lights:hover .light {
-  opacity: 1;
-}
-
-.light.close { background-color: #ff5f56; }
-.light.min   { background-color: #ffbd2e; }
-.light.max   { background-color: #27c93f; }
-
-.app-brand-title {
-  margin-left: 12px;
-  font-size: 0.88rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+.brand-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--text-pure-white);
-  opacity: 0.85;
+  background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.75) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* Segmented Center Navigation */
@@ -379,39 +379,24 @@ input {
 }
 
 /* Dish Title & Metadata */
-.dish-metadata {
+.dish-titles-clean {
   width: 100%;
-  margin-top: 24px;
+  text-align: left;
 }
 
-.dish-header-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.dish-titles {
-  flex: 1;
-  min-width: 0;
-}
-
-.dish-name {
-  font-size: 1.65rem;
+.dish-titles-clean .dish-name {
+  font-size: 1.75rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   color: var(--text-pure-white);
-  line-height: 1.25;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
-.dish-sub {
+.dish-titles-clean .dish-sub {
   font-size: 0.92rem;
   font-weight: 400;
   color: var(--text-secondary);
-  margin-top: 4px;
+  margin-top: 6px;
   letter-spacing: -0.01em;
 }
 

@@ -18,13 +18,11 @@
   <div class="ambient-backdrop" id="ambient-backdrop"></div>
 
   <div class="app-window">
-    <!-- Top Chrome Bar (Mac / Apple TV Style) -->
+    <!-- Top Chrome Bar -->
     <header class="window-header">
-      <div class="window-traffic-lights">
-        <span class="light close"></span>
-        <span class="light min"></span>
-        <span class="light max"></span>
-        <span class="app-brand-title">Sous-Chef</span>
+      <div class="brand-badge">
+        <span class="brand-icon">🍳</span>
+        <span class="brand-title">Sous-Chef</span>
       </div>
 
       <!-- Mode Switcher Tabs (Now Cooking | Kitchen Storage) -->
@@ -75,23 +73,9 @@
             </div>
             
             <div class="dish-metadata">
-              <div class="dish-header-row">
-                <div class="dish-titles">
-                  <h1 class="dish-name" id="dish-name">Spinach & Cheddar Scramble</h1>
-                  <p class="dish-sub" id="dish-sub">10 min · 2 servings · ~320 kcal</p>
-                </div>
-                <div class="dish-actions">
-                  <button class="icon-action-btn star-btn" id="star-recipe-btn" title="Save to Family Cookbook">★</button>
-                  <button class="icon-action-btn menu-btn" id="custom-recipe-open-btn" title="Add Custom Recipe">⋯</button>
-                </div>
-              </div>
-
-              <!-- Recipe Servings Scaler (Apple 1-Click [1x | 2x | 4x]) -->
-              <div class="scaler-segmented-bar">
-                <span class="scaler-caption">Scale:</span>
-                <button type="button" class="scale-chip" data-scale="1">1x</button>
-                <button type="button" class="scale-chip active" data-scale="2">2x</button>
-                <button type="button" class="scale-chip" data-scale="4">4x</button>
+              <div class="dish-titles-clean">
+                <h1 class="dish-name" id="dish-name">Spinach & Cheddar Scramble</h1>
+                <p class="dish-sub" id="dish-sub">10 min · 2 servings · ~320 kcal</p>
               </div>
 
               <!-- Step Timer Progress Scrubber -->
@@ -105,19 +89,19 @@
                 </div>
               </div>
 
-              <!-- Apple-Style Transport Playback Bar -->
+              <!-- Streamlined Cooking Transport Bar -->
               <div class="transport-controls-bar">
                 <button class="transport-btn secondary" id="prev-step-btn" title="Previous Step (Left Arrow)">
                   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
                 </button>
-                <button class="transport-btn primary-play" id="timer-toggle-btn" title="Play/Pause Timer (Space)">
+                <button class="transport-btn primary-play" id="timer-toggle-btn" title="Play/Pause Step Timer (Space)">
                   <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                   <svg class="pause-icon hidden" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
                 </button>
                 <button class="transport-btn secondary" id="next-step-btn" title="Next Step (Right Arrow)">
                   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
                 </button>
-                <button class="transport-btn finish-btn" id="finish-meal-btn" title="I Made It! (Deduct Ingredients)">
+                <button class="transport-btn finish-btn hidden" id="finish-meal-btn" title="Complete Meal (Deduct Groceries)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                 </button>
               </div>

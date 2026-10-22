@@ -733,6 +733,71 @@ def test_perishability_outside_warning_and_move_endpoint(server, db):
     assert "milk" in conv_move_data["spoken_message"].lower()
 
 
+def test_screen_presence_detection_and_adaptive_alexa_responses(server, db):
+    seed(db)
+    headers = {"Authorization": f"Bearer {server.config.auth_token}"}
+
+    # 1. Initially, companion screen is inactive (app closed)
+    presence_close = httpx.post(f"{server.base}/api/presence", json={"status": "closed"}, headers=headers)
+    assert presence_close.status_code == 200
+    assert presence_close.json()["screen_active"] is False
+
+    # Ask for recipe via conversational API when app is CLOSED
+    suggest_closed = httpx.post(f"{server.base}/api/converse", json={"utterance": "what can I make in 15 minutes?"}, headers=headers)
+    assert suggest_closed.status_code == 200
+    data_closed = suggest_closed.json()
+    # Alexa should prompt: "Open and check, I have shared the recipe steps with your Sous-Chef screen companion."
+    assert "open and check" in data_closed["spoken_message"].lower() or "shared the recipe steps" in data_closed["spoken_message"].lower()
+
+    # 2. Companion app is OPEN (receives heartbeat from browser)
+    presence_open = httpx.post(f"{server.base}/api/presence", json={"status": "active"}, headers=headers)
+    assert presence_open.status_code == 200
+    assert presence_open.json()["screen_active"] is True
+
+    # Ask for recipe via Alexa Skill when app is OPEN
+    suggest_payload = {
+        "version": "1.0",
+        "session": {"new": False, "sessionId": "amzn1.echo-api.session.presence-test"},
+        "request": {
+            "type": "IntentRequest",
+            "requestId": "amzn1.echo-api.request.suggest-screen",
+            "timestamp": "2026-10-22T00:10:00Z",
+            "locale": "en-US",
+            "intent": {
+                "name": "SuggestRecipeIntent",
+                "confirmationStatus": "NONE",
+                "slots": {"MaxMinutes": {"name": "MaxMinutes", "value": "15"}}
+            }
+        }
+    }
+    suggest_open = httpx.post(f"{server.base}/alexa", json=suggest_payload, headers=headers)
+    assert suggest_open.status_code == 200
+    speech_open = suggest_open.json()["response"]["outputSpeech"]["text"]
+    # Alexa should announce: "You can see the full recipe steps and timer right on your screen."
+    assert "on your screen" in speech_open.lower()
+
+    # Step navigation when app is OPEN
+    step_payload = {
+        "version": "1.0",
+        "session": {"new": False, "sessionId": "amzn1.echo-api.session.presence-test"},
+        "request": {
+            "type": "IntentRequest",
+            "requestId": "amzn1.echo-api.request.step-screen",
+            "timestamp": "2026-10-22T00:11:00Z",
+            "locale": "en-US",
+            "intent": {
+                "name": "CookingStepIntent",
+                "confirmationStatus": "NONE",
+                "slots": {"StepAction": {"name": "StepAction", "value": "next"}}
+            }
+        }
+    }
+    step_open = httpx.post(f"{server.base}/alexa", json=step_payload, headers=headers)
+    assert step_open.status_code == 200
+    step_speech = step_open.json()["response"]["outputSpeech"]["text"]
+    assert "on your screen" in step_speech.lower()
+
+
 
 
 
