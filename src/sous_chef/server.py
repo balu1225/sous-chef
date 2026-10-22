@@ -40,6 +40,13 @@ from config import Config
 from ledger import Store
 from parser.amount_parser import parse_kitchen_utterance, format_spoken_quantity
 from runtime import ToolFailure, run_blocking, run_tool, setup_logging
+from matching import (
+    get_all_recipes,
+    find_recipe_by_id,
+    match_recipes,
+    execute_cooking_deduction,
+)
+from nutrition import calculate_meal_nutrition
 
 log = logging.getLogger("kitchen_agent")
 
@@ -54,7 +61,8 @@ INSTRUCTIONS = (
 )
 
 PUBLIC_PATHS = frozenset({"/healthz", "/readyz", "/", "/style.css", "/app.js",
-                          "/api/inventory", "/api/converse"})
+                          "/api/inventory", "/api/converse", "/api/nutrition",
+                          "/api/recipes", "/api/cooking"})
 
 
 @dataclass
@@ -62,6 +70,8 @@ class State:
     config: Config
     store: Store | None = None
     pending_clarification: dict | None = None
+    active_cooking: dict | None = None
+
 
 
 # --------------------------------------------------------------------------
@@ -74,7 +84,36 @@ def _item_view(row: dict) -> dict:
             "confidence": None}
 
 
+def get_daily_nutrition(store: Store, household_id: str, date_str: str | None = None) -> dict[str, Any]:
+    with store.pool.connection() as conn:
+        target_date = date_str or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        row = conn.execute(
+            "SELECT COALESCE(SUM(total_kcal), 0) AS total_kcal, "
+            "COALESCE(SUM(total_protein_g), 0) AS total_protein, "
+            "COUNT(*) AS meals_count "
+            "FROM logged_meals "
+            "WHERE household_id = %s AND created_at::date = %s::date",
+            (household_id, target_date)
+        ).fetchone()
+
+        kcal = float(row["total_kcal"])
+        prot = float(row["total_protein"])
+        meals = int(row["meals_count"])
+
+        msg = (f"Today you've consumed approximately {kcal:.0f} calories and {prot:.0f}g protein across {meals} meal(s)."
+               if meals > 0 else "You haven't logged any meals today yet.")
+
+        return {
+            "date": target_date,
+            "total_kcal": kcal,
+            "total_protein_g": prot,
+            "meals_logged": meals,
+            "spoken_summary": msg
+        }
+
+
 def register_tools(mcp: FastMCP, state: State) -> None:
+
 
     def ledger():
         if state.store is None:
@@ -189,6 +228,123 @@ def register_tools(mcp: FastMCP, state: State) -> None:
         return await run_tool("undo_last_change", state.config.household_id,
                               ctx.request_id, handler)
 
+    @mcp.tool(
+        name="nutrition_summary",
+        description="Get calories and protein consumed today based on logged meals.",
+        annotations=ToolAnnotations(readOnlyHint=True, idempotentHint=True,
+                                    destructiveHint=False, openWorldHint=False),
+    )
+    async def nutrition_summary(
+        ctx: Context,
+        period: Annotated[str, Field(description="Period: 'today' or 'week'")] = "today",
+    ) -> CallToolResult:
+        async def handler() -> dict:
+            if state.store is None:
+                raise ToolFailure("db_unavailable", "Kitchen database unavailable.", retryable=True)
+            res = await run_blocking(
+                lambda: get_daily_nutrition(state.store, state.config.household_id),
+                state.config.tool_timeout_s, retry_transient=True
+            )
+            return {"summary": res}
+
+        return await run_tool("nutrition_summary", state.config.household_id,
+                              ctx.request_id, handler)
+
+    @mcp.tool(
+        name="suggest_recipes",
+        description="Suggest meal options based on what's in kitchen stock, prioritizing food expiring within 48h.",
+        annotations=ToolAnnotations(readOnlyHint=True, idempotentHint=True,
+                                    destructiveHint=False, openWorldHint=False),
+    )
+    async def suggest_recipes(
+        ctx: Context,
+        goal: Annotated[str | None, Field(description="Optional goal: 'quick', 'use_expiring', or 'high_protein'")] = None,
+        max_minutes: Annotated[int | None, Field(ge=5, le=180, description="Max preparation time in minutes")] = None,
+    ) -> CallToolResult:
+        async def handler() -> dict:
+            led = ledger()
+            rows = await run_blocking(led.list_items, state.config.tool_timeout_s, retry_transient=True)
+            active = [_item_view(r) for r in rows if r["qty"] > 0]
+            recipes = get_all_recipes(state.store, state.config.household_id)
+            res = match_recipes(active, goal=goal, max_minutes=max_minutes, recipes=recipes)
+            return res
+
+        return await run_tool("suggest_recipes", state.config.household_id,
+                              ctx.request_id, handler)
+
+    @mcp.tool(
+        name="cook_recipe",
+        description="Record cooking a recipe ('I made it'). Atomically deducts ingredients and logs nutrition.",
+        annotations=ToolAnnotations(readOnlyHint=False, idempotentHint=True,
+                                    destructiveHint=False, openWorldHint=False),
+    )
+    async def cook_recipe(
+        ctx: Context,
+        recipe_id: Annotated[str, Field(description="Recipe ID or recipe name")],
+        idempotency_key: Annotated[str, Field(min_length=1, max_length=128)],
+        servings_eaten: Annotated[float, Field(ge=0.25, le=20.0, description="Number of servings cooked")] = 2.0,
+    ) -> CallToolResult:
+        async def handler() -> dict:
+            led = ledger()
+            recipe = find_recipe_by_id(recipe_id, state.store, state.config.household_id)
+            if not recipe:
+                raise ToolFailure("recipe_not_found", f"I couldn't find a recipe matching '{recipe_id}'.")
+            res = await run_blocking(
+                lambda: execute_cooking_deduction(led, recipe, servings_eaten, idempotency_key, state.store, state.config.household_id),
+                state.config.tool_timeout_s, retry_transient=False
+            )
+            return res
+
+        return await run_tool("cook_recipe", state.config.household_id,
+                              ctx.request_id, handler)
+
+    @mcp.tool(
+        name="save_custom_recipe",
+        description="Save a custom family recipe by voice with ingredients, servings, and steps.",
+        annotations=ToolAnnotations(readOnlyHint=False, idempotentHint=True,
+                                    destructiveHint=False, openWorldHint=False),
+    )
+    async def save_custom_recipe(
+        ctx: Context,
+        name: Annotated[str, Field(min_length=1, max_length=100)],
+        ingredients: Annotated[list[dict], Field(description="Ingredients with item, qty, unit, and optional role")],
+        idempotency_key: Annotated[str, Field(min_length=1, max_length=128)],
+        servings: Annotated[float, Field(ge=0.5, le=20.0)] = 2.0,
+        prep_minutes: Annotated[int, Field(ge=1, le=240)] = 15,
+        steps: Annotated[list[str] | None, Field(description="Step instructions")] = None,
+    ) -> CallToolResult:
+        async def handler() -> dict:
+            if state.store is None:
+                raise ToolFailure("db_unavailable", "Kitchen database unavailable.")
+            recipe_uuid = str(uuid.uuid4())
+            with state.store.pool.connection() as conn:
+                conn.execute(
+                    "INSERT INTO custom_recipes (recipe_id, household_id, name, servings, prep_minutes, ingredients, steps) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s) "
+                    "ON CONFLICT (household_id, name) DO UPDATE SET "
+                    "servings = EXCLUDED.servings, prep_minutes = EXCLUDED.prep_minutes, "
+                    "ingredients = EXCLUDED.ingredients, steps = EXCLUDED.steps",
+                    (recipe_uuid, state.config.household_id, name, servings, prep_minutes,
+                     json.dumps(ingredients), json.dumps(steps or []))
+                )
+            nutr = calculate_meal_nutrition(ingredients)
+            kcal = round(nutr["total_kcal"] / servings, 1)
+            prot = round(nutr["total_protein_g"] / servings, 1)
+            return {
+                "saved": True,
+                "recipe_id": recipe_uuid,
+                "name": name,
+                "servings": servings,
+                "prep_minutes": prep_minutes,
+                "kcal_per_serving": kcal,
+                "protein_per_serving": prot,
+                "spoken_message": f"Saved your recipe for {name}! Each serving has approximately {kcal:.0f} calories and {prot:.0f}g protein."
+            }
+
+        return await run_tool("save_custom_recipe", state.config.household_id,
+                              ctx.request_id, handler)
+
+
 
 # --------------------------------------------------------------------------
 # HTTP app
@@ -283,6 +439,65 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
         active = [_item_view(r) for r in rows if r["qty"] > 0]
         return JSONResponse({"items": active, "count": len(active)})
 
+    async def api_nutrition(_: Request) -> JSONResponse:
+        if state.store is None:
+            return JSONResponse({"date": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "total_kcal": 0, "total_protein_g": 0, "meals_logged": 0})
+        res = await run_blocking(lambda: get_daily_nutrition(state.store, state.config.household_id),
+                                 state.config.tool_timeout_s, retry_transient=True)
+        return JSONResponse(res)
+
+    async def api_recipes(_: Request) -> JSONResponse:
+        recipes = get_all_recipes(state.store, state.config.household_id)
+        return JSONResponse({"recipes": recipes, "count": len(recipes)})
+
+    async def api_cooking(request: Request) -> JSONResponse:
+        if request.method == "GET":
+            return JSONResponse({"active_cooking": state.active_cooking})
+        elif request.method == "POST":
+            body = await request.json()
+            action = body.get("action")
+            if action == "start":
+                recipe_id = body.get("recipe_id")
+                recipe = find_recipe_by_id(recipe_id, state.store, state.config.household_id)
+                if not recipe:
+                    return JSONResponse({"error": "not_found"}, status_code=404)
+                state.active_cooking = {
+                    "recipe": recipe,
+                    "step": 1,
+                    "checked_prep": [],
+                    "servings": float(body.get("servings", recipe.get("servings", 2)))
+                }
+                return JSONResponse({"active_cooking": state.active_cooking})
+            elif action == "stop":
+                state.active_cooking = None
+                return JSONResponse({"active_cooking": None})
+            elif action == "check_prep":
+                item = body.get("item")
+                if state.active_cooking and item:
+                    if item not in state.active_cooking["checked_prep"]:
+                        state.active_cooking["checked_prep"].append(item)
+                return JSONResponse({"active_cooking": state.active_cooking})
+            elif action == "next_step":
+                if state.active_cooking:
+                    recipe = state.active_cooking["recipe"]
+                    steps = recipe.get("steps", [])
+                    if state.active_cooking["step"] < len(steps):
+                        state.active_cooking["step"] += 1
+                return JSONResponse({"active_cooking": state.active_cooking})
+            elif action == "prev_step":
+                if state.active_cooking:
+                    if state.active_cooking["step"] > 1:
+                        state.active_cooking["step"] -= 1
+                return JSONResponse({"active_cooking": state.active_cooking})
+            elif action == "confirm_action":
+                if state.active_cooking:
+                    recipe = state.active_cooking["recipe"]
+                    steps = recipe.get("steps", [])
+                    if state.active_cooking["step"] < len(steps):
+                        state.active_cooking["step"] += 1
+                return JSONResponse({"active_cooking": state.active_cooking, "action_confirmed": True, "resume_music": True})
+            return JSONResponse({"error": "invalid_action"}, status_code=400)
+
     async def api_converse(request: Request) -> JSONResponse:
         body = await request.json()
         utterance = body.get("utterance", "")
@@ -296,7 +511,6 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
         if state.pending_clarification:
             pending = state.pending_clarification
             state.pending_clarification = None
-            # Combine previous pending items with the new utterance
             combined_utterance = f"{pending['action']} {utterance}"
             res = parse_kitchen_utterance(combined_utterance)
             if not res.needs_clarification and res.items:
@@ -337,6 +551,188 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                 msg = f"Warning: {items_spoken} will expire within 48 hours. Consider using them for dinner!"
             return JSONResponse({"spoken_message": msg, "items": [_item_view(r) for r in expiring]})
 
+        elif res.action == "discard" and res.items:
+            names = [i.item for i in res.items]
+            rows = await run_blocking(led.list_items, state.config.tool_timeout_s, retry_transient=True)
+            active_items = {r["item"].lower().strip(): r for r in rows if r["qty"] > 0}
+            to_discard_rows = []
+            for name in names:
+                if name in active_items:
+                    to_discard_rows.append(active_items[name])
+                else:
+                    for a_name, r in active_items.items():
+                        if name in a_name or a_name in name:
+                            to_discard_rows.append(r)
+                            break
+
+            if not to_discard_rows:
+                msg = f"I checked your kitchen, but you don't have {', '.join(names)} logged in stock right now."
+                return JSONResponse({"spoken_message": msg})
+
+            ops = [
+                {
+                    "type": "discard",
+                    "item": r["item"],
+                    "qty": r["qty"],
+                    "unit": r["unit"],
+                    "zone": r["zone"],
+                }
+                for r in to_discard_rows
+            ]
+            await run_blocking(lambda: led.apply_batch(ops, idempotency_key=str(uuid.uuid4())),
+                               state.config.tool_timeout_s, retry_transient=False)
+            names_discarded = [r["item"] for r in to_discard_rows]
+            msg = f"I'm sorry to hear that. I'm removing the {', '.join(names_discarded)} from your kitchen."
+            return JSONResponse({"spoken_message": msg, "discarded": names_discarded})
+
+        elif res.action == "suggest_recipes":
+            rows = await run_blocking(led.list_items, state.config.tool_timeout_s, retry_transient=True)
+            active = [_item_view(r) for r in rows if r["qty"] > 0]
+            recipes = get_all_recipes(state.store, state.config.household_id)
+            goal = res.context.get("goal")
+            max_min = res.context.get("max_minutes")
+            match_res = match_recipes(active, goal=goal, max_minutes=max_min, recipes=recipes)
+            top = match_res.get("top_pick")
+            if top:
+                state.active_cooking = {
+                    "recipe": top,
+                    "step": 1,
+                    "checked_prep": [],
+                    "servings": top.get("servings", 2)
+                }
+            return JSONResponse({
+                "spoken_message": match_res["spoken_message"],
+                "recipe": top,
+                "suggestions": match_res.get("suggestions", []),
+                "active_cooking": state.active_cooking
+            })
+
+        elif res.action == "music_control":
+            cmd = res.context.get("state", "play")
+            msg = "Playing relaxing cooking music in your kitchen! 🎵" if cmd == "play" else "Paused cooking music."
+            return JSONResponse({
+                "spoken_message": msg,
+                "music_command": cmd,
+                "active_cooking": state.active_cooking
+            })
+
+        elif res.action == "timer_control":
+            cmd = res.context.get("state", "start")
+            msg = "Starting your step timer." if cmd == "start" else "Step timer paused."
+            return JSONResponse({
+                "spoken_message": msg,
+                "timer_command": cmd,
+                "active_cooking": state.active_cooking
+            })
+
+        elif res.action == "confirm_action":
+            if state.active_cooking:
+                recipe = state.active_cooking["recipe"]
+                steps = recipe.get("steps", [])
+                curr = state.active_cooking["step"]
+                if curr < len(steps):
+                    state.active_cooking["step"] += 1
+                    next_s = steps[state.active_cooking["step"] - 1]
+                    timer_hint = f" Set a {next_s['timer_seconds'] // 60} minute timer if needed." if next_s.get("timer_seconds") else ""
+                    msg = f"Awesome! Stove is stopped and food is checked. Going back to your cooking flow! Step {state.active_cooking['step']}: {next_s['instruction']}{timer_hint}"
+                else:
+                    msg = f"Awesome! Stove is stopped and food is checked. That was your final step for {recipe['name']}! Say 'I made it' or 'I finished' to deduct your ingredients and log your nutrition."
+                return JSONResponse({
+                    "spoken_message": msg,
+                    "action_confirmed": True,
+                    "resume_music": True,
+                    "active_cooking": state.active_cooking
+                })
+            else:
+                msg = "All checked and set in your kitchen!"
+                return JSONResponse({"spoken_message": msg})
+
+        elif res.action == "check_prep_item":
+            item_name = res.context.get("checked_item", "").lower()
+            if state.active_cooking:
+                recipe = state.active_cooking["recipe"]
+                matched_ing = None
+                for ing in recipe.get("ingredients", []):
+                    if item_name in ing["item"].lower() or ing["item"].lower() in item_name:
+                        matched_ing = ing["item"]
+                        break
+                checked_item = matched_ing or item_name
+                if checked_item not in state.active_cooking["checked_prep"]:
+                    state.active_cooking["checked_prep"].append(checked_item)
+
+                all_ings = [i["item"] for i in recipe.get("ingredients", [])]
+                remaining = [i for i in all_ings if i not in state.active_cooking["checked_prep"]]
+                if not remaining:
+                    steps = recipe.get("steps", [])
+                    first_step = steps[0]["instruction"] if steps else "Start cooking!"
+                    msg = f"Awesome! All ingredients for {recipe['name']} are ready! Step 1: {first_step}. Say 'Next' when you're ready!"
+                else:
+                    msg = f"Got it! Checked off {checked_item}. You still need {remaining[0]}."
+                return JSONResponse({"spoken_message": msg, "active_cooking": state.active_cooking})
+            else:
+                msg = f"Got the {item_name}! Ask 'What can I make for dinner?' to start a recipe."
+                return JSONResponse({"spoken_message": msg})
+
+        elif res.action == "next_step":
+            if state.active_cooking:
+                recipe = state.active_cooking["recipe"]
+                steps = recipe.get("steps", [])
+                curr = state.active_cooking["step"]
+                if curr < len(steps):
+                    state.active_cooking["step"] += 1
+                    next_s = steps[state.active_cooking["step"] - 1]
+                    timer_hint = f" Set a {next_s['timer_seconds'] // 60} minute timer if needed." if next_s.get("timer_seconds") else ""
+                    msg = f"Step {state.active_cooking['step']}: {next_s['instruction']}{timer_hint}"
+                else:
+                    msg = f"That was the final step for {recipe['name']}! Say 'I made it' or 'I'm done' to deduct the ingredients and log your nutrition."
+                return JSONResponse({"spoken_message": msg, "active_cooking": state.active_cooking})
+            else:
+                msg = "You don't have an active recipe cooking. Say 'What can I make for dinner?' to start one!"
+                return JSONResponse({"spoken_message": msg})
+
+        elif res.action == "resume_cooking":
+            if state.active_cooking:
+                recipe = state.active_cooking["recipe"]
+                steps = recipe.get("steps", [])
+                curr = state.active_cooking["step"]
+                curr_s = steps[curr - 1] if steps and curr <= len(steps) else {"instruction": "Cooking"}
+                msg = f"Welcome back! You're making {recipe['name']} on Step {curr} of {len(steps)}: {curr_s['instruction']}. Say 'Next' when ready."
+                return JSONResponse({"spoken_message": msg, "active_cooking": state.active_cooking})
+            else:
+                msg = "You're all caught up! No recipe is currently in progress."
+                return JSONResponse({"spoken_message": msg})
+
+        elif res.action == "cook_recipe":
+            recipe = None
+            if state.active_cooking:
+                recipe = state.active_cooking["recipe"]
+            else:
+                rec_name = res.context.get("recipe_name", "")
+                if rec_name:
+                    recipe = find_recipe_by_id(rec_name, state.store, state.config.household_id)
+                if not recipe:
+                    rows = await run_blocking(led.list_items, state.config.tool_timeout_s, retry_transient=True)
+                    active = [_item_view(r) for r in rows if r["qty"] > 0]
+                    match_res = match_recipes(active)
+                    recipe = match_res.get("top_pick")
+
+            if not recipe:
+                msg = "I'm not sure which recipe you cooked. You can say 'I made Grandma's Chili' or ask 'What can I make?'"
+                return JSONResponse({"spoken_message": msg})
+
+            servings = float(state.active_cooking.get("servings", recipe.get("servings", 2))) if state.active_cooking else 2.0
+            cook_res = await run_blocking(
+                lambda: execute_cooking_deduction(led, recipe, servings, str(uuid.uuid4()), state.store, state.config.household_id),
+                state.config.tool_timeout_s, retry_transient=False
+            )
+            state.active_cooking = None
+            return JSONResponse({"spoken_message": cook_res["spoken_message"], "meal": cook_res, "active_cooking": None})
+
+        elif res.action == "query_nutrition":
+            nutr = await run_blocking(lambda: get_daily_nutrition(state.store, state.config.household_id),
+                                      state.config.tool_timeout_s, retry_transient=True)
+            return JSONResponse({"spoken_message": nutr["spoken_summary"], "nutrition": nutr})
+
         elif res.action == "undo":
             undo_res = await run_blocking(lambda: led.undo(idempotency_key=str(uuid.uuid4())),
                                      state.config.tool_timeout_s, retry_transient=False)
@@ -355,14 +751,11 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                 msg = f"{action_word} {', '.join(names)} in your kitchen."
                 return JSONResponse({"spoken_message": msg, "changes": batch_res.get("changes", [])})
 
-        msg = f"I heard: '{utterance}'. You can ask 'What's in my kitchen?', 'What is about to expire?', or say 'I bought 2 gallons of milk'."
+        msg = f"I heard: '{utterance}'. You can ask 'What can I make in 15 minutes?', 'The milk is spoiled', or 'What is in my kitchen?'."
         return JSONResponse({"spoken_message": msg})
 
     @asynccontextmanager
     async def lifespan(_app):
-        # Opening the pool does not block on the database: if it is down at
-        # boot, the server still starts, /readyz reports it, tools return a
-        # speakable error, and the pool keeps reconnecting in the background.
         try:
             state.store = await anyio.to_thread.run_sync(factory, config)
         except Exception:  # noqa: BLE001
@@ -381,11 +774,15 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                             Route("/style.css", serve_style, methods=["GET"]),
                             Route("/app.js", serve_app, methods=["GET"]),
                             Route("/api/inventory", api_inventory, methods=["GET"]),
+                            Route("/api/nutrition", api_nutrition, methods=["GET"]),
+                            Route("/api/recipes", api_recipes, methods=["GET"]),
+                            Route("/api/cooking", api_cooking, methods=["GET", "POST"]),
                             Route("/api/converse", api_converse, methods=["POST"]),
                             Route("/healthz", healthz, methods=["GET"]),
                             Route("/readyz", readyz, methods=["GET"]),
                             Mount("/", app=mcp_app)],
                     lifespan=lifespan)
+
     app.state.kitchen = state
     return BearerAuth(app, config.auth_token)
 

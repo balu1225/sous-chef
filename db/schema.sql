@@ -63,16 +63,45 @@ DROP TRIGGER IF EXISTS events_no_update ON events;
 CREATE TRIGGER events_no_update BEFORE UPDATE ON events
     FOR EACH ROW EXECUTE FUNCTION events_append_only();
 
+-- Logged meals: Tracks cooked meals and nutrition consumption per household.
+CREATE TABLE IF NOT EXISTS logged_meals (
+    meal_id         UUID PRIMARY KEY,
+    household_id    TEXT NOT NULL REFERENCES households ON DELETE CASCADE,
+    recipe_id       TEXT,
+    recipe_name     TEXT NOT NULL,
+    servings        NUMERIC(6,2) NOT NULL DEFAULT 1.0,
+    total_kcal      NUMERIC(10,2) NOT NULL DEFAULT 0,
+    total_protein_g NUMERIC(10,2) NOT NULL DEFAULT 0,
+    details         JSONB,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS logged_meals_household_date ON logged_meals (household_id, created_at);
+
+-- Custom family recipes saved by voice.
+CREATE TABLE IF NOT EXISTS custom_recipes (
+    recipe_id       UUID PRIMARY KEY,
+    household_id    TEXT NOT NULL REFERENCES households ON DELETE CASCADE,
+    name            TEXT NOT NULL,
+    servings        NUMERIC(6,2) NOT NULL DEFAULT 1.0,
+    prep_minutes    INT NOT NULL DEFAULT 15,
+    ingredients     JSONB NOT NULL,
+    steps           JSONB,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (household_id, name)
+);
+
 -- Row-level security: a second wall between households. The app sets
 -- app.household_id at the start of every transaction. Policies apply when the
 -- app connects as a non-owner role (recommended in production).
-ALTER TABLE batches   ENABLE ROW LEVEL SECURITY;
-ALTER TABLE events    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE inventory ENABLE ROW LEVEL SECURITY;
+ALTER TABLE batches        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE events         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE inventory      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE logged_meals   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE custom_recipes ENABLE ROW LEVEL SECURITY;
 DO $$
 DECLARE t TEXT;
 BEGIN
-    FOREACH t IN ARRAY ARRAY['batches','events','inventory'] LOOP
+    FOREACH t IN ARRAY ARRAY['batches','events','inventory','logged_meals','custom_recipes'] LOOP
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = t
                        AND policyname = t || '_household') THEN
             EXECUTE format(
@@ -83,3 +112,4 @@ BEGIN
         END IF;
     END LOOP;
 END $$;
+

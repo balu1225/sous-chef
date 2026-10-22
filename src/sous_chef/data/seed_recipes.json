@@ -1,0 +1,353 @@
+[
+  {
+    "id": "spinach_scramble",
+    "name": "Spinach & Cheddar Scramble",
+    "prep_minutes": 10,
+    "servings": 2,
+    "tags": ["quick", "high_protein", "breakfast", "dinner"],
+    "description": "Fluffy scrambled eggs folded with tender baby spinach and melted cheddar.",
+    "ingredients": [
+      {"item": "eggs", "qty": 4, "unit": "count", "role": "core"},
+      {"item": "spinach", "qty": 1, "unit": "cup", "role": "core"},
+      {"item": "cheddar", "qty": 2, "unit": "oz", "role": "core"},
+      {"item": "butter", "qty": 1, "unit": "tbsp", "role": "staple"}
+    ],
+    "steps": [
+      {
+        "index": 1,
+        "instruction": "Whisk 4 eggs in a bowl with a pinch of salt and pepper.",
+        "tip": "Whisk vigorously for 30 seconds to incorporate air for fluffier eggs.",
+        "timer_seconds": null
+      },
+      {
+        "index": 2,
+        "instruction": "Melt 1 tbsp butter in a non-stick skillet over medium-low heat and add 1 cup of spinach until wilted.",
+        "tip": "Spinach wilts very quickly — about 60 seconds is all it takes.",
+        "timer_seconds": 60,
+        "timer_alert": "Time's up! Turn down the stove and stir the wilted spinach."
+      },
+      {
+        "index": 3,
+        "instruction": "Pour in whisked eggs and cook gently for 3 minutes, stirring slowly to form soft curds.",
+        "tip": "Keep heat on medium-low so the eggs stay creamy and tender.",
+        "timer_seconds": 180,
+        "timer_alert": "Time's up! Turn off the stove now and gently stir the curds so they don't overcook!"
+      },
+      {
+        "index": 4,
+        "instruction": "Sprinkle 2 oz shredded cheddar over the top, turn off the heat, and let it melt.",
+        "tip": "The residual skillet heat will melt the cheese perfectly in 30 seconds.",
+        "timer_seconds": 30,
+        "timer_alert": "Time's up! The cheese is melted. Turn off the stove and plate your eggs!"
+      }
+    ]
+  },
+  {
+    "id": "classic_omelet",
+    "name": "Classic French Omelet",
+    "prep_minutes": 8,
+    "servings": 1,
+    "tags": ["quick", "high_protein", "low_carb"],
+    "description": "Tender, buttery golden omelet stuffed with melted sharp cheddar.",
+    "ingredients": [
+      {"item": "eggs", "qty": 3, "unit": "count", "role": "core"},
+      {"item": "cheddar", "qty": 1.5, "unit": "oz", "role": "core"},
+      {"item": "butter", "qty": 1, "unit": "tbsp", "role": "staple"}
+    ],
+    "steps": [
+      {
+        "index": 1,
+        "instruction": "Crack 3 eggs into a bowl and whisk thoroughly until completely smooth.",
+        "tip": "No white streaks should remain for a uniform French texture.",
+        "timer_seconds": null
+      },
+      {
+        "index": 2,
+        "instruction": "Melt butter in a skillet over medium heat until foamy, then pour in the eggs.",
+        "tip": "Swirl the pan constantly for the first 45 seconds to create small curds.",
+        "timer_seconds": 45,
+        "timer_alert": "Time's up! Stop swirling, curds are set. Turn down the stove and add cheese!"
+      },
+      {
+        "index": 3,
+        "instruction": "Spread cheddar down the center, cook for 2 minutes, then fold one edge over.",
+        "tip": "Tilt the pan to easily roll the omelet onto your plate.",
+        "timer_seconds": 120,
+        "timer_alert": "Time's up! Slide the omelet onto your plate right now while it's soft and glossy!"
+      }
+    ]
+  },
+  {
+    "id": "chicken_rice_bowl",
+    "name": "Simple Chicken & Rice Bowl",
+    "prep_minutes": 15,
+    "servings": 2,
+    "tags": ["quick", "high_protein", "balanced", "meal_prep"],
+    "description": "Pan-seared seasoned chicken breast served over fluffy warm rice.",
+    "ingredients": [
+      {"item": "chicken breast", "qty": 1, "unit": "lb", "role": "core"},
+      {"item": "rice", "qty": 1, "unit": "cup", "role": "core"},
+      {"item": "olive oil", "qty": 1, "unit": "tbsp", "role": "staple"},
+      {"item": "cheddar", "qty": 1, "unit": "oz", "role": "optional"}
+    ],
+    "steps": [
+      {
+        "index": 1,
+        "instruction": "Dice chicken breast into bite-sized 1-inch cubes and season with salt and pepper.",
+        "tip": "Cutting into uniform bite-sized cubes ensures fast, even searing.",
+        "timer_seconds": null
+      },
+      {
+        "index": 2,
+        "instruction": "Heat 1 tbsp olive oil in a skillet over high heat, then sear chicken cubes for 6 minutes.",
+        "tip": "Don't move the chicken for the first 2 minutes so it develops a nice golden crust.",
+        "timer_seconds": 360,
+        "timer_alert": "Time's up! Check that chicken is golden brown and cooked through (165°F)!"
+      },
+      {
+        "index": 3,
+        "instruction": "Spoon chicken over warm cooked rice and top with cheese if desired.",
+        "tip": "Drizzle any leftover pan juices over the rice for maximum flavor.",
+        "timer_seconds": null
+      }
+    ]
+  },
+  {
+    "id": "grandmas_chili",
+    "name": "Grandma's Quick Chili",
+    "prep_minutes": 20,
+    "servings": 4,
+    "tags": ["comfort", "high_protein", "family", "one_pot"],
+    "description": "Hearty, warming beef chili loaded with black beans, simmered tomatoes, and savory spices.",
+    "ingredients": [
+      {"item": "ground beef", "qty": 1, "unit": "lb", "role": "core"},
+      {"item": "black beans", "qty": 1, "unit": "can", "role": "core"},
+      {"item": "crushed tomatoes", "qty": 1, "unit": "can", "role": "core"},
+      {"item": "olive oil", "qty": 1, "unit": "tbsp", "role": "staple"},
+      {"item": "cheddar", "qty": 2, "unit": "oz", "role": "optional"}
+    ],
+    "steps": [
+      {
+        "index": 1,
+        "instruction": "Heat 1 tbsp olive oil in a deep pot over medium-high heat. Add ground beef and brown for 5 minutes.",
+        "tip": "Break up the meat with a wooden spoon as it browns.",
+        "timer_seconds": 300,
+        "timer_alert": "Time's up! Drain excess fat if needed, then prepare your canned ingredients."
+      },
+      {
+        "index": 2,
+        "instruction": "Pour in 1 can drained black beans and 1 can crushed tomatoes. Stir to combine.",
+        "tip": "Add a teaspoon of chili powder and cumin if you have them in your spice rack.",
+        "timer_seconds": null
+      },
+      {
+        "index": 3,
+        "instruction": "Reduce heat to low, cover with lid, and simmer gently for 12 minutes.",
+        "tip": "Simmering lets the beans soak in the rich tomato beef broth.",
+        "timer_seconds": 720,
+        "timer_alert": "Ding! Chili is fully simmered and rich! Turn off the stove and ladle into bowls."
+      },
+      {
+        "index": 4,
+        "instruction": "Ladle into warm bowls and top with shredded cheddar.",
+        "tip": "Chili tastes even better as leftovers tomorrow!",
+        "timer_seconds": null
+      }
+    ]
+  },
+  {
+    "id": "cheesy_rice_beans",
+    "name": "Cheesy Rice & Beans",
+    "prep_minutes": 12,
+    "servings": 2,
+    "tags": ["quick", "budget", "vegetarian", "one_pot"],
+    "description": "Creamy, satisfying skillet combining black beans, warm rice, and bubbling melted cheddar.",
+    "ingredients": [
+      {"item": "rice", "qty": 1.5, "unit": "cup", "role": "core"},
+      {"item": "black beans", "qty": 1, "unit": "can", "role": "core"},
+      {"item": "cheddar", "qty": 3, "unit": "oz", "role": "core"},
+      {"item": "butter", "qty": 1, "unit": "tbsp", "role": "staple"}
+    ],
+    "steps": [
+      {
+        "index": 1,
+        "instruction": "Rinse and drain 1 can of black beans.",
+        "tip": "Rinsing removes excess sodium and starch.",
+        "timer_seconds": null
+      },
+      {
+        "index": 2,
+        "instruction": "Melt butter in a pan over medium heat, add rice and beans, and heat through for 4 minutes.",
+        "tip": "Stir frequently so the rice doesn't stick to the bottom.",
+        "timer_seconds": 240,
+        "timer_alert": "Time's up! The rice and beans are piping hot. Stir in the cheese!"
+      },
+      {
+        "index": 3,
+        "instruction": "Stir in shredded cheddar until completely melted and creamy (about 1 minute).",
+        "tip": "Turn off heat before stirring so the cheese doesn't separate.",
+        "timer_seconds": 60,
+        "timer_alert": "Time's up! Turn off the stove and give the cheese a creamy final stir!"
+      }
+    ]
+  },
+  {
+    "id": "garlic_herb_chicken",
+    "name": "Pan-Seared Golden Chicken",
+    "prep_minutes": 15,
+    "servings": 2,
+    "tags": ["quick", "high_protein", "low_carb", "keto"],
+    "description": "Juicy pan-seared chicken cutlets with a crispy golden olive oil crust.",
+    "ingredients": [
+      {"item": "chicken breast", "qty": 1, "unit": "lb", "role": "core"},
+      {"item": "olive oil", "qty": 1, "unit": "tbsp", "role": "staple"},
+      {"item": "spinach", "qty": 1, "unit": "cup", "role": "optional"}
+    ],
+    "steps": [
+      {
+        "index": 1,
+        "instruction": "Slice chicken breast horizontally into thin cutlets and season both sides.",
+        "tip": "Thin cutlets cook twice as fast and stay much juicier.",
+        "timer_seconds": null
+      },
+      {
+        "index": 2,
+        "instruction": "Heat skillet with olive oil over medium-high heat. Sear chicken 4 minutes on the first side.",
+        "tip": "Leave untouched until it releases easily from the skillet.",
+        "timer_seconds": 240,
+        "timer_alert": "Time to flip! Turn the chicken cutlets over to the second side."
+      },
+      {
+        "index": 3,
+        "instruction": "Flip and sear the other side for 3 minutes until cooked through.",
+        "tip": "Toss in fresh spinach during the last minute to wilt right in the pan juices.",
+        "timer_seconds": 180,
+        "timer_alert": "Time's up! Remove chicken from heat and let it rest for 2 minutes before slicing."
+      }
+    ]
+  },
+  {
+    "id": "creamy_spinach_eggs",
+    "name": "Creamy Spinach Scrambled Eggs",
+    "prep_minutes": 10,
+    "servings": 2,
+    "tags": ["quick", "comfort", "breakfast", "dinner"],
+    "description": "Velvety scrambled eggs enriched with a splash of milk and sautéed spinach.",
+    "ingredients": [
+      {"item": "eggs", "qty": 4, "unit": "count", "role": "core"},
+      {"item": "milk", "qty": 0.25, "unit": "cup", "role": "core"},
+      {"item": "spinach", "qty": 1, "unit": "cup", "role": "core"},
+      {"item": "butter", "qty": 1, "unit": "tbsp", "role": "staple"}
+    ],
+    "steps": [
+      {
+        "index": 1,
+        "instruction": "Whisk 4 eggs together with 1/4 cup whole milk and a pinch of salt.",
+        "tip": "Milk creates steam pockets inside the eggs, making them silky and light.",
+        "timer_seconds": null
+      },
+      {
+        "index": 2,
+        "instruction": "Sauté spinach in melted butter for 1 minute until wilted.",
+        "tip": "Spread the wilted spinach evenly across the skillet floor.",
+        "timer_seconds": 60,
+        "timer_alert": "Time's up! Stir the wilted spinach and pour in the whisked eggs."
+      },
+      {
+        "index": 3,
+        "instruction": "Pour in egg-milk mixture and cook on low heat for 3 minutes with gentle sweeps.",
+        "tip": "Low heat is the secret to custard-like eggs.",
+        "timer_seconds": 180,
+        "timer_alert": "Ding! Eggs are creamy and set. Pull them off the heat right now!"
+      }
+    ]
+  },
+  {
+    "id": "beef_rice_skillet",
+    "name": "Quick Beef & Rice Skillet",
+    "prep_minutes": 15,
+    "servings": 3,
+    "tags": ["quick", "high_protein", "one_pot", "comfort"],
+    "description": "Sautéed ground beef tossed with warm rice, crushed tomatoes, and melted cheese.",
+    "ingredients": [
+      {"item": "ground beef", "qty": 0.75, "unit": "lb", "role": "core"},
+      {"item": "rice", "qty": 1.5, "unit": "cup", "role": "core"},
+      {"item": "crushed tomatoes", "qty": 0.5, "unit": "can", "role": "core"},
+      {"item": "cheddar", "qty": 2, "unit": "oz", "role": "optional"}
+    ],
+    "steps": [
+      {
+        "index": 1,
+        "instruction": "Brown ground beef in a skillet over medium heat for 5 minutes.",
+        "tip": "Drain any excess rendered fat from the skillet.",
+        "timer_seconds": 300,
+        "timer_alert": "Beef is browned! Now add in the rice and crushed tomatoes."
+      },
+      {
+        "index": 2,
+        "instruction": "Add cooked rice and crushed tomatoes. Stir and heat through for 4 minutes.",
+        "tip": "Let the rice absorb the savory tomato beef juices.",
+        "timer_seconds": 240,
+        "timer_alert": "Time's up! Top with cheddar cheese and remove from heat."
+      }
+    ]
+  },
+  {
+    "id": "black_bean_soup",
+    "name": "15-Minute Black Bean Soup",
+    "prep_minutes": 15,
+    "servings": 2,
+    "tags": ["quick", "vegan", "fiber", "comfort"],
+    "description": "Thick, warm black bean soup simmered with sweet crushed tomatoes and olive oil.",
+    "ingredients": [
+      {"item": "black beans", "qty": 1, "unit": "can", "role": "core"},
+      {"item": "crushed tomatoes", "qty": 0.5, "unit": "can", "role": "core"},
+      {"item": "olive oil", "qty": 1, "unit": "tbsp", "role": "staple"}
+    ],
+    "steps": [
+      {
+        "index": 1,
+        "instruction": "Warm olive oil in a pot, add black beans (undrained) and crushed tomatoes.",
+        "tip": "Using the bean liquid provides natural thickness and body.",
+        "timer_seconds": null
+      },
+      {
+        "index": 2,
+        "instruction": "Simmer gently on medium-low for 8 minutes, mashing roughly half the beans.",
+        "tip": "Mashing some beans creates a luscious, hearty texture.",
+        "timer_seconds": 480,
+        "timer_alert": "Time's up! Turn off the stove. Your black bean soup is thick and ready to serve!"
+      }
+    ]
+  },
+  {
+    "id": "protein_scramble",
+    "name": "Ultimate High-Protein Scramble",
+    "prep_minutes": 10,
+    "servings": 1,
+    "tags": ["quick", "high_protein", "fitness", "post_workout"],
+    "description": "Power-packed scramble with 3 whole eggs, shredded seared chicken, and tender baby spinach.",
+    "ingredients": [
+      {"item": "eggs", "qty": 3, "unit": "count", "role": "core"},
+      {"item": "chicken breast", "qty": 0.25, "unit": "lb", "role": "core"},
+      {"item": "spinach", "qty": 1, "unit": "cup", "role": "core"},
+      {"item": "butter", "qty": 0.5, "unit": "tbsp", "role": "staple"}
+    ],
+    "steps": [
+      {
+        "index": 1,
+        "instruction": "Warm shredded or diced pre-cooked chicken in melted butter for 2 minutes.",
+        "tip": "Using leftover or pre-cooked chicken makes this ready in under 10 minutes.",
+        "timer_seconds": 120,
+        "timer_alert": "Time's up! Stir the chicken cutlets and add the spinach to wilt."
+      },
+      {
+        "index": 2,
+        "instruction": "Add spinach until wilted, then pour in 3 whisked eggs.",
+        "tip": "Stir continuously on low heat for creamy curds.",
+        "timer_seconds": 180,
+        "timer_alert": "Time's up! Take it off the heat immediately for fluffy, protein-packed eggs."
+      }
+    ]
+  }
+]

@@ -972,10 +972,10 @@
     "semantic_hash": "dedebfdabca317c7913d874391031601"
   },
   "src/sous_chef/parser/amount_parser.py": {
-    "mtime": 1792600788.527796,
-    "seen": 1792606193.937956,
-    "ast_hash": "76982f36de37d29625808f11024f4a7c",
-    "semantic_hash": "76982f36de37d29625808f11024f4a7c"
+    "mtime": 1792635455.1158874,
+    "seen": 1792635867.61994,
+    "ast_hash": "665f19e751f61576f2b5c42e8489d967",
+    "semantic_hash": ""
   },
   "src/sous_chef/runtime.py": {
     "mtime": 1792551848.587899,
@@ -984,16 +984,16 @@
     "semantic_hash": "d93f918a62025bf7d4e7d65d1ffd1973"
   },
   "src/sous_chef/server.py": {
-    "mtime": 1792600825.3476942,
-    "seen": 1792606193.937958,
-    "ast_hash": "108f12767439efa1f9fbaf69731e6eec",
-    "semantic_hash": "108f12767439efa1f9fbaf69731e6eec"
+    "mtime": 1792635792.4642258,
+    "seen": 1792635867.619963,
+    "ast_hash": "4e27cf652d2736109af62c7cd010bb38",
+    "semantic_hash": ""
   },
   "tests/test_amount_parser.py": {
-    "mtime": 1792554292.0724652,
-    "seen": 1792606193.937958,
-    "ast_hash": "b0f78a29fbe164aff78a68192880ee3e",
-    "semantic_hash": "b0f78a29fbe164aff78a68192880ee3e"
+    "mtime": 1792635706.6061926,
+    "seen": 1792635867.619964,
+    "ast_hash": "22bf2503a7431a7f30976e8a663d8d41",
+    "semantic_hash": ""
   },
   "tests/test_ledger.py": {
     "mtime": 1792551848.5880072,
@@ -1002,15 +1002,357 @@
     "semantic_hash": "a173986a4a9ea46c96937479bae0eec2"
   },
   "tests/test_server.py": {
-    "mtime": 1792552104.3264627,
-    "seen": 1792606193.93796,
-    "ast_hash": "664a23956c99a4c1c41d1c1415ed83e0",
-    "semantic_hash": "664a23956c99a4c1c41d1c1415ed83e0"
+    "mtime": 1792635730.8281815,
+    "seen": 1792635867.619988,
+    "ast_hash": "243237c5b6a04c3244bcc0e3a3afd9df",
+    "semantic_hash": ""
   },
   "web_simulator/app.js": {
-    "mtime": 1792552199.115352,
-    "seen": 1792606193.93796,
-    "ast_hash": "307e4ff058b2c61335eb524f46b21142",
-    "semantic_hash": "307e4ff058b2c61335eb524f46b21142"
+    "mtime": 1792635692.2794766,
+    "seen": 1792635867.619989,
+    "ast_hash": "989acbbe0ad1bbb93112aa1860615b9b",
+    "semantic_hash": ""
+  },
+  "src/sous_chef/data/seed_recipes.json": {
+    "mtime": 1792635431.4761856,
+    "seen": 1792635867.61989,
+    "ast_hash": "8d9356de65c92cfd564d6bfccbb0aafb",
+    "semantic_hash": ""
+  },
+  "src/sous_chef/matching.py": {
+    "mtime": 1792635064.628123,
+    "seen": 1792635867.619914,
+    "ast_hash": "67df2b6b39cf7bb3982d775f749f243d",
+    "semantic_hash": ""
+  },
+  ".agents/rules/context_tracker.md": {
+    "mtime": 1792435679.087141,
+    "seen": 1792635867.61999,
+    "ast_hash": "d63cb6eae341ef9721c80790c4135995",
+    "semantic_hash": ""
+  },
+  ".agents/skills/amount-parser/SKILL.md": {
+    "mtime": 1792533555.6283405,
+    "seen": 1792635867.619991,
+    "ast_hash": "64394cda2268c2c226a217c56458413d",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/SKILL.md": {
+    "mtime": 1792604806.2510982,
+    "seen": 1792635867.619991,
+    "ast_hash": "2ac126852225d0d81fa551667c3a692a",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/THIRD_PARTY_NOTICES.md": {
+    "mtime": 1792604806.2105963,
+    "seen": 1792635867.619992,
+    "ast_hash": "acfba74158b6f0fad496c01d5479d3e2",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/assets/JetBrainsMono-OFL.txt": {
+    "mtime": 1792604806.2701485,
+    "seen": 1792635867.619993,
+    "ast_hash": "1c09e67ab89d3a2e874aac38159e300f",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/assets/template.html": {
+    "mtime": 1792604806.269746,
+    "seen": 1792635867.6199942,
+    "ast_hash": "5ea9f59ebfade818c31f86d2006924e3",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/brand-marks/README.md": {
+    "mtime": 1792604806.2463984,
+    "seen": 1792635867.6199949,
+    "ast_hash": "699ee91498179c167bc3e19af79ca89c",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/examples/class-payment-processors-rendered.html": {
+    "mtime": 1792604806.2342973,
+    "seen": 1792635867.6199949,
+    "ast_hash": "550c5bc7fba8307ea8866dfaa9de6fb6",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/examples/class-payments-rendered.html": {
+    "mtime": 1792604806.231158,
+    "seen": 1792635867.6199958,
+    "ast_hash": "0f4f4879f4ae2acf2f307bac5e14b567",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/examples/dataflow-product-analytics.html": {
+    "mtime": 1792604806.2281754,
+    "seen": 1792635867.619997,
+    "ast_hash": "f74d6b131ca27dd0670c29b55708cc10",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/examples/erd-orders-rendered.html": {
+    "mtime": 1792604806.2365317,
+    "seen": 1792635867.619998,
+    "ast_hash": "c2e608b8d8b1eb8102edcfc5cd75bd6a",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/examples/lifecycle-agent-run.html": {
+    "mtime": 1792604806.2260938,
+    "seen": 1792635867.619999,
+    "ast_hash": "0c84d0bb802e4752fedbbbe2fd5ae660",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/examples/sequence-cache-miss-request.html": {
+    "mtime": 1792604806.2274857,
+    "seen": 1792635867.62,
+    "ast_hash": "9e595c95e44c8336271d7a56eb22a3da",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/examples/subscription-billing-rendered.html": {
+    "mtime": 1792604806.2427764,
+    "seen": 1792635867.62,
+    "ast_hash": "b48bae60460e30b16b4e44007e6ada4f",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/examples/timeline-archify-dev-activity-rendered.html": {
+    "mtime": 1792604806.217757,
+    "seen": 1792635867.620001,
+    "ast_hash": "8fd1cc284c831de2c68f462440f87694",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/examples/timeline-payment-incident-rendered.html": {
+    "mtime": 1792604806.2458646,
+    "seen": 1792635867.620002,
+    "ast_hash": "9523969da127a90a2b4c612f66a9af06",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/examples/tree-archify-repository-rendered.html": {
+    "mtime": 1792604806.2418542,
+    "seen": 1792635867.620003,
+    "ast_hash": "1b7884748aca3f3b163d9acebee84118",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/examples/tree-payment-platform-rendered.html": {
+    "mtime": 1792604806.2350545,
+    "seen": 1792635867.620003,
+    "ast_hash": "510993f8b5178c1a0ad88dd15c7aed34",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/examples/waterfall-checkout-request-rendered.html": {
+    "mtime": 1792604806.2210486,
+    "seen": 1792635867.6200042,
+    "ast_hash": "d460f7eb6935baf460b2cfc4bf3b40d5",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/examples/waterfall-example-rebuild-rendered.html": {
+    "mtime": 1792604806.2442229,
+    "seen": 1792635867.6200051,
+    "ast_hash": "1fc3fa735f6aff1b534c8a51a894116f",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/examples/web-app-rendered.html": {
+    "mtime": 1792604806.2382185,
+    "seen": 1792635867.6200058,
+    "ast_hash": "f0947f2e1352aa8a990741c06fafe369",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/examples/workflow-agent-tool-call-rendered.html": {
+    "mtime": 1792604806.2397714,
+    "seen": 1792635867.6200068,
+    "ast_hash": "ecdf38cdff28fb211b5ec420feb092a0",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/explainer/vendor/pele/README.md": {
+    "mtime": 1792604806.2624087,
+    "seen": 1792635867.620008,
+    "ast_hash": "61dacf6b3c86b020c4db92d93f007813",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/locales/README.md": {
+    "mtime": 1792604806.201324,
+    "seen": 1792635867.620009,
+    "ast_hash": "b05248c67df2c0de56c869a39c4a5323",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/references/architecture-layout-repair.md": {
+    "mtime": 1792604806.2080786,
+    "seen": 1792635867.620009,
+    "ast_hash": "f7f542f8cc00d80ccaefff429c2243a9",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/references/authoring-contract.md": {
+    "mtime": 1792604806.2071097,
+    "seen": 1792635867.62001,
+    "ast_hash": "42ce1f19d29dd6b7b4d8f2ed2c3064bb",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/references/authoring-defaults.md": {
+    "mtime": 1792604806.2076461,
+    "seen": 1792635867.620011,
+    "ast_hash": "f693671eb5f14a1db29f748d60b63dbf",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/references/brand-marks.md": {
+    "mtime": 1792604806.209103,
+    "seen": 1792635867.620012,
+    "ast_hash": "f7a7613af0cf016254359fbdb655794b",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/references/delivery-contract.md": {
+    "mtime": 1792604806.2095585,
+    "seen": 1792635867.620013,
+    "ast_hash": "edc71ef4d4b866dbe2bb3deb83c2b1f9",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/references/explainer-authoring.md": {
+    "mtime": 1792604806.2084057,
+    "seen": 1792635867.6200142,
+    "ast_hash": "b564a515503296e78726afba9b1cb757",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/references/repository-authoring.md": {
+    "mtime": 1792604806.20989,
+    "seen": 1792635867.6200142,
+    "ast_hash": "bc79ea5f7696902f93ba539e41925b22",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/references/update-awareness.md": {
+    "mtime": 1792604806.2086878,
+    "seen": 1792635867.6200151,
+    "ast_hash": "af5e6344f90f68d72413e6566cbba561",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/references/viewer-runtime.md": {
+    "mtime": 1792604806.2102036,
+    "seen": 1792635867.620016,
+    "ast_hash": "d2b61a5229ef194bb252c35b4ccd1a00",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/renderers/class/README.md": {
+    "mtime": 1792604806.19391,
+    "seen": 1792635867.6200168,
+    "ast_hash": "317233d358104761eb9a21f200a0b70f",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/renderers/dataflow/README.md": {
+    "mtime": 1792604806.170777,
+    "seen": 1792635867.620018,
+    "ast_hash": "962a8f6753ce41ac6c25e7fb063e3db0",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/renderers/erd/README.md": {
+    "mtime": 1792604806.1954482,
+    "seen": 1792635867.620018,
+    "ast_hash": "413533ab549e45549d90d330c142a1ae",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/renderers/lifecycle/README.md": {
+    "mtime": 1792604806.1749198,
+    "seen": 1792635867.620019,
+    "ast_hash": "c0802ebb0ef8f2e114e8e1c02c80f079",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/renderers/sequence/README.md": {
+    "mtime": 1792604806.1981921,
+    "seen": 1792635867.62002,
+    "ast_hash": "f2d36e8d8732b43a17efd5249fe3bd0b",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/renderers/timeline/README.md": {
+    "mtime": 1792604806.1987424,
+    "seen": 1792635867.620021,
+    "ast_hash": "0eccd5b7439cf8a444df7156c16c5c1f",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/renderers/tree/README.md": {
+    "mtime": 1792604806.172648,
+    "seen": 1792635867.620021,
+    "ast_hash": "ddf1bfcfa54395ebd1196dff43068531",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/renderers/waterfall/README.md": {
+    "mtime": 1792604806.1738353,
+    "seen": 1792635867.620022,
+    "ast_hash": "f78d9be0afe3bc3fb72a0a84e711e7b8",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/renderers/workflow/README.md": {
+    "mtime": 1792604806.1924162,
+    "seen": 1792635867.620023,
+    "ast_hash": "832c5204e391e4e03ad4b12e537e1334",
+    "semantic_hash": ""
+  },
+  ".agents/skills/archify/schemas/README.md": {
+    "mtime": 1792604806.212712,
+    "seen": 1792635867.620024,
+    "ast_hash": "05cc3ee0df8026a75f10604490bc8bc4",
+    "semantic_hash": ""
+  },
+  ".agents/skills/bedrock-converse/SKILL.md": {
+    "mtime": 1792533585.6479604,
+    "seen": 1792635867.620024,
+    "ast_hash": "4553090219bf826f10a84e9c491b6ef0",
+    "semantic_hash": ""
+  },
+  ".agents/skills/fastmcp-server/SKILL.md": {
+    "mtime": 1792533526.770319,
+    "seen": 1792635867.6200252,
+    "ast_hash": "f68b98977b8a5f21b9f68dcece22516b",
+    "semantic_hash": ""
+  },
+  ".agents/skills/postgres-ledger/SKILL.md": {
+    "mtime": 1792533540.1903405,
+    "seen": 1792635867.620026,
+    "ast_hash": "0fe2bb43b0d4b989b8682de74deff4b2",
+    "semantic_hash": ""
+  },
+  ".agents/skills/recipe-matching-engine/SKILL.md": {
+    "mtime": 1792533615.979103,
+    "seen": 1792635867.6200268,
+    "ast_hash": "107b918b2bd8a4eaf28f20ac784aab06",
+    "semantic_hash": ""
+  },
+  ".agents/skills/reliability-testing/SKILL.md": {
+    "mtime": 1792533633.552917,
+    "seen": 1792635867.620028,
+    "ast_hash": "92259f89c7edc9eb75414d5f8f24d6a6",
+    "semantic_hash": ""
+  },
+  ".agents/skills/usda-nutrition/SKILL.md": {
+    "mtime": 1792533601.507545,
+    "seen": 1792635867.620029,
+    "ast_hash": "237f281a3633ad6c8818cea5c4cf8d41",
+    "semantic_hash": ""
+  },
+  ".agents/skills/web-voice-companion/SKILL.md": {
+    "mtime": 1792533571.6332026,
+    "seen": 1792635867.620029,
+    "ast_hash": "8ea02ec1850046e97e948fc8df970d4f",
+    "semantic_hash": ""
+  },
+  "PROJECT_CONTEXT.md": {
+    "mtime": 1792635861.6540241,
+    "seen": 1792635867.62003,
+    "ast_hash": "1c14262ed95f615cd0681aee233df281",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1792609749.5420735,
+    "seen": 1792635867.6200309,
+    "ast_hash": "b08344d239a0ab6c935885aa0934444c",
+    "semantic_hash": ""
+  },
+  "docs/PDD_v2.0.md": {
+    "mtime": 1792551848.588167,
+    "seen": 1792635867.620032,
+    "ast_hash": "ac433e58d57c926a43b44cacbbc155f0",
+    "semantic_hash": ""
+  },
+  "requirements.txt": {
+    "mtime": 1792551848.586969,
+    "seen": 1792635867.620033,
+    "ast_hash": "1b5ee4923390a0eace48f94d4e743fdc",
+    "semantic_hash": ""
+  },
+  "web_simulator/index.html": {
+    "mtime": 1792635564.8509715,
+    "seen": 1792635867.620034,
+    "ast_hash": "95a07d5dd452647a0acfb43b5ee89d7b",
+    "semantic_hash": ""
   }
 }

@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="app-container">
@@ -17,6 +17,21 @@
         <div class="brand-badge">ALEXA+ SIMULATOR</div>
         <h1>Sous-Chef</h1>
       </div>
+
+      <!-- Cooking Ambience Music Bar -->
+      <div class="music-pill" id="music-pill">
+        <button class="music-btn" id="music-btn" title="Toggle Lo-Fi Kitchen Music">
+          <span class="music-icon">🎵</span>
+          <span id="music-btn-label">Ambience: Off</span>
+        </button>
+        <div class="music-bars" id="music-bars">
+          <span class="bar bar-1"></span>
+          <span class="bar bar-2"></span>
+          <span class="bar bar-3"></span>
+        </div>
+        <input type="range" id="music-vol" min="0" max="100" value="25" title="Music Volume" class="music-slider">
+      </div>
+
       <div class="header-status">
         <div class="status-indicator">
           <span class="pulse-dot"></span>
@@ -48,7 +63,7 @@
         <div class="transcript-box" id="transcript-box">
           <div class="transcript-entry assistant">
             <span class="speaker-tag">Sous-Chef</span>
-            <p>Welcome to Sous-Chef! I'm your kitchen voice assistant. Try asking <em>"What's in my kitchen?"</em> or say <em>"I bought 2 gallons of milk and a dozen eggs."</em></p>
+            <p>Welcome to Sous-Chef! I'm your kitchen voice assistant. Try asking <em>"What can I make in 15 minutes?"</em>, <em>"The milk is spoiled"</em>, or say <em>"I bought 2 gallons of milk and a dozen eggs."</em></p>
           </div>
         </div>
 
@@ -76,59 +91,168 @@
         <!-- Quick Phrases Bar -->
         <div class="quick-phrases">
           <span class="quick-label">Try saying:</span>
-          <button class="chip" data-phrase="What's in my kitchen?">What's in my kitchen?</button>
-          <button class="chip" data-phrase="What is about to expire?">What's about to expire?</button>
-          <button class="chip" data-phrase="I bought 2 gallons of milk and 6 eggs">Add milk & eggs</button>
+          <button class="chip" data-phrase="What can I make in 15 minutes?">⚡ 15-min Meal</button>
+          <button class="chip" data-phrase="What's in my kitchen?">📦 What's in kitchen?</button>
+          <button class="chip" data-phrase="Play cooking music">🎵 Play music</button>
+          <button class="chip" data-phrase="The milk is spoiled">⚠️ Milk spoiled</button>
+          <button class="chip" data-phrase="Next step">Next step ▶</button>
+          <button class="chip" data-phrase="I stopped the stove">✓ Stove stopped</button>
           <button class="chip" data-phrase="Undo that">Undo that</button>
         </div>
       </section>
 
-      <!-- Right Column: Live Pantry & Shelf-Life View -->
-      <section class="inventory-section glass-panel">
-        <div class="inventory-header">
-          <div>
-            <h2>Pantry & Refrigerator</h2>
-            <p class="section-subtitle">Real-time Append-Only Projection</p>
-          </div>
-          <button class="refresh-btn" id="refresh-inventory-btn" title="Refresh Inventory">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-            </svg>
+      <!-- Right Column: Dual View (Inventory & Guided Cooking) -->
+      <section class="workspace-section glass-panel">
+        <!-- View Navigation Tabs -->
+        <div class="workspace-nav">
+          <button class="nav-tab active" id="tab-inventory" data-view="inventory">
+            <span>📦 Pantry & Fridge</span>
+          </button>
+          <button class="nav-tab" id="tab-cooking" data-view="cooking">
+            <span>🍳 Guided Cooking</span>
+            <span class="active-cooking-dot" id="cooking-active-dot">● Active</span>
           </button>
         </div>
 
-        <!-- Filter Chips -->
-        <div class="inventory-filters">
-          <button class="filter-tab active" data-filter="all">All Items (<span id="count-all">0</span>)</button>
-          <button class="filter-tab" data-filter="expiring">Expiring Soon (<span id="count-expiring">0</span>)</button>
-        </div>
-
-        <!-- Inventory List -->
-        <div class="inventory-grid" id="inventory-grid">
-          <div class="empty-state">
-            <p>Loading kitchen inventory...</p>
-          </div>
-        </div>
-
-        <!-- Daily Nutrition Summary Widget -->
-        <div class="nutrition-widget">
-          <div class="nutrition-widget-header">
-            <h3>Today's Nutrition (Estimated)</h3>
-            <span class="source-tag">USDA FoodData</span>
-          </div>
-          <div class="nutrition-metrics">
-            <div class="metric-card">
-              <span class="metric-num" id="today-kcal">0</span>
-              <span class="metric-name">Calories (kcal)</span>
+        <!-- 1. Inventory View -->
+        <div class="view-panel" id="view-inventory">
+          <div class="inventory-header">
+            <div>
+              <h2>Kitchen Inventory</h2>
+              <p class="section-subtitle">Real-time Append-Only Projection</p>
             </div>
-            <div class="metric-card">
-              <span class="metric-num" id="today-protein">0g</span>
-              <span class="metric-name">Protein</span>
+            <button class="refresh-btn" id="refresh-inventory-btn" title="Refresh Inventory">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Filter Chips -->
+          <div class="inventory-filters">
+            <button class="filter-tab active" data-filter="all">All Items (<span id="count-all">0</span>)</button>
+            <button class="filter-tab" data-filter="expiring">Expiring Soon (<span id="count-expiring">0</span>)</button>
+          </div>
+
+          <!-- Inventory List -->
+          <div class="inventory-grid" id="inventory-grid">
+            <div class="empty-state">
+              <p>Loading kitchen inventory...</p>
+            </div>
+          </div>
+
+          <!-- Daily Nutrition Summary Widget -->
+          <div class="nutrition-widget">
+            <div class="nutrition-widget-header">
+              <h3>Today's Nutrition (Estimated)</h3>
+              <span class="source-tag">USDA FoodData</span>
+            </div>
+            <div class="nutrition-metrics">
+              <div class="metric-card">
+                <span class="metric-num" id="today-kcal">0</span>
+                <span class="metric-name">Calories (kcal)</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-num" id="today-protein">0g</span>
+                <span class="metric-name">Protein</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Guided Cooking View -->
+        <div class="view-panel hidden" id="view-cooking">
+          <div class="cooking-empty" id="cooking-empty-state">
+            <div class="empty-icon">🍳</div>
+            <h3>No Active Recipe</h3>
+            <p>Ask <em>"What can I make in 15 minutes?"</em> or choose a recipe below to begin step-by-step cooking with ambient music and smart timers.</p>
+            <div class="recipe-starter-list" id="recipe-starter-list">
+              <!-- Dynamically filled with top recipes -->
+            </div>
+          </div>
+
+          <div class="cooking-active-container hidden" id="cooking-active-container">
+            <!-- Recipe Banner -->
+            <div class="recipe-banner">
+              <div class="recipe-banner-left">
+                <div class="recipe-pill-tags">
+                  <span class="recipe-badge" id="recipe-badge-time">⏱️ 10 min</span>
+                  <span class="recipe-badge" id="recipe-badge-servings">🍽️ 2 servings</span>
+                  <span class="recipe-badge" id="recipe-badge-kcal">🔥 ~320 kcal</span>
+                </div>
+                <h2 id="recipe-title">Spinach & Cheddar Scramble</h2>
+                <p id="recipe-desc">Fluffy scrambled eggs folded with tender baby spinach and melted cheddar.</p>
+              </div>
+              <button class="exit-cooking-btn" id="exit-cooking-btn" title="Stop Cooking">✕ Stop</button>
+            </div>
+
+            <!-- Ingredient Prep Checklist Card -->
+            <div class="prep-card">
+              <div class="prep-header">
+                <div>
+                  <h4>Ingredient Prep Checklist</h4>
+                  <p class="prep-subtitle">Say <em>"I got the spinach"</em> or tap to check off</p>
+                </div>
+                <span class="prep-counter" id="prep-counter">0 / 4 ready</span>
+              </div>
+              <div class="prep-items-list" id="prep-items-list">
+                <!-- Checkable ingredient rows rendered here -->
+              </div>
+            </div>
+
+            <!-- Active Step Card -->
+            <div class="step-card">
+              <div class="step-card-header">
+                <span class="step-badge" id="step-index-badge">STEP 1 OF 4</span>
+                <span class="step-timer-indicator" id="step-timer-indicator">⏱️ No timer needed</span>
+              </div>
+              <p class="step-text" id="step-text">Whisk eggs in a bowl with a pinch of salt.</p>
+              
+              <div class="step-tip-box" id="step-tip-box">
+                <span class="tip-bulb">💡</span>
+                <span id="step-tip-text">Whisk vigorously for 30 seconds to incorporate air.</span>
+              </div>
+
+              <!-- Smart Step Timer -->
+              <div class="step-timer-section" id="step-timer-section">
+                <div class="timer-clock-display" id="timer-clock-display">03:00</div>
+                <div class="timer-btn-row">
+                  <button class="timer-btn play" id="timer-start-btn">▶ Start Timer</button>
+                  <button class="timer-btn pause" id="timer-pause-btn">⏸ Pause</button>
+                  <button class="timer-btn reset" id="timer-reset-btn">↺ Reset</button>
+                </div>
+                <div class="timer-ducking-note">
+                  🎵 Ambience plays softly & automatically silences when timer alerts you!
+                </div>
+              </div>
+
+              <!-- Navigation bar -->
+              <div class="step-actions">
+                <button class="step-btn secondary" id="prev-step-btn">◀ Previous</button>
+                <button class="step-btn primary" id="next-step-btn">Next Step ▶</button>
+                <button class="step-btn finish" id="finish-cooking-btn">✓ Cooked & Done (Deduct Stock)</button>
+              </div>
             </div>
           </div>
         </div>
       </section>
     </main>
+
+    <!-- Timer Alert Overlay Modal -->
+    <div class="timer-alert-overlay hidden" id="timer-alert-overlay">
+      <div class="timer-alert-card">
+        <div class="alert-bell-pulse">🔔</div>
+        <h3>Timer Finished!</h3>
+        <p class="alert-message" id="alert-message">Time's up! Turn off the stove now and gently stir so it doesn't overcook!</p>
+        <div class="alert-prompt">
+          <span>Say <em>"Stove is off"</em>, <em>"Done"</em>, or click below:</span>
+        </div>
+        <div class="alert-buttons">
+          <button class="alert-btn confirm" id="alert-confirm-btn">✓ Stove Stopped & Checked (Continue)</button>
+          <button class="alert-btn add-time" id="alert-add-time-btn">⏱ Need 1 More Minute</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>

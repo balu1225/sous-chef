@@ -131,6 +131,10 @@ KNOWN_ITEMS = [
 ]
 
 
+from dataclasses import dataclass, field
+
+
+
 @dataclass
 class ParsedItem:
     item: str
@@ -142,10 +146,11 @@ class ParsedItem:
 
 @dataclass
 class ParseResult:
-    action: str  # "add", "consume", "query", "undo", "unknown"
+    action: str  # "add", "consume", "discard", "query_all", "query_expiring", "suggest_recipes", "cook_recipe", "check_prep_item", "next_step", "resume_cooking", "query_nutrition", "undo", "unknown"
     items: list[ParsedItem]
     needs_clarification: bool = False
     clarifying_question: str | None = None
+    context: dict[str, Any] = field(default_factory=dict)
 
 
 def parse_kitchen_utterance(text: str) -> ParseResult:
@@ -156,8 +161,55 @@ def parse_kitchen_utterance(text: str) -> ParseResult:
     clean = text.lower().strip()
     clean = re.sub(r"[^\w\s/.-]", " ", clean)
 
-    # 1. Check for Query / Inspection
-    if any(q in clean for q in ["what is about to expire", "what s about to expire", "expiring", "spoil"]):
+    # 1. Nutrition Query
+    if any(q in clean for q in ["today s nutrition", "todays nutrition", "nutrition today", "how many calories", "how much protein", "nutrition summary"]):
+        return ParseResult(action="query_nutrition", items=[])
+
+    # 2. Recipe Suggestions (e.g. "What can I make in 15 minutes?")
+    if any(q in clean for q in ["what can i make", "what can i cook", "suggest a recipe", "suggest dinner", "what s for dinner", "what is for dinner", "recipe suggestion", "what should i make", "what can i prepare"]):
+        max_min = 15 if any(w in clean for w in ["15 min", "15 minute", "15 minutes", "quick", "busy day", "fast", "rush", "hurry"]) else None
+        goal = "quick" if max_min else ("high_protein" if "protein" in clean else ("use_expiring" if any(w in clean for w in ["expir", "spoil"]) else None))
+        return ParseResult(action="suggest_recipes", items=[], context={"max_minutes": max_min, "goal": goal})
+
+    # 3. Guided Cooking & Kitchen Media Commands
+    if any(q in clean for q in ["play music", "play cooking music", "start music", "cooking music", "play some music", "turn on music", "resume music"]):
+        return ParseResult(action="music_control", items=[], context={"state": "play"})
+
+    if any(q in clean for q in ["stop music", "pause music", "turn off music", "stop the music", "quiet"]):
+        return ParseResult(action="music_control", items=[], context={"state": "stop"})
+
+    if any(q in clean for q in ["start timer", "start the timer", "run timer", "set timer", "begin timer"]):
+        return ParseResult(action="timer_control", items=[], context={"state": "start"})
+
+    if any(q in clean for q in ["stop timer", "pause timer", "cancel timer", "reset timer"]):
+        return ParseResult(action="timer_control", items=[], context={"state": "stop"})
+
+    if any(q in clean for q in [
+        "i stopped the stove", "stopped the stove", "stopped stove", "stove is stopped",
+        "turn off the stove", "stove is off", "turned off the stove", "turned off stove",
+        "mixed it", "stirred it", "i stirred", "i mixed", "checked it", "all checked",
+        "done with that", "i did it", "all done", "ready to continue", "i am done", "i'm done", "done"
+    ]) and not any(q in clean for q in ["i made", "i cooked", "done cooking", "finished cooking"]):
+        return ParseResult(action="confirm_action", items=[], context={"confirmed": True})
+
+    if any(q in clean for q in ["where was i", "continue cooking", "resume cooking"]):
+        return ParseResult(action="resume_cooking", items=[])
+
+    if any(q in clean for q in ["next step", "what s next", "what is next", "go to next step"]):
+        return ParseResult(action="next_step", items=[])
+
+    prep_match = re.search(r"\b(?:i got the|i have the|got the|have the|checked)\s+([a-z\s]+)", clean)
+    if prep_match:
+        item_text = prep_match.group(1).strip()
+        return ParseResult(action="check_prep_item", items=[], context={"checked_item": item_text})
+
+    cook_match = re.search(r"\b(?:i made|i cooked|finished cooking|i m done cooking|i am done cooking)\s*([a-z\s]*)?", clean)
+    if cook_match and not any(q in clean for q in ["what can i make", "what should i make"]):
+        recipe_name = (cook_match.group(1) or "").strip()
+        return ParseResult(action="cook_recipe", items=[], context={"recipe_name": recipe_name})
+
+    # 4. Check for Query / Inspection / Undo
+    if any(q in clean for q in ["what is about to expire", "what s about to expire", "what is expiring", "what is spoiling"]) and not any(w in clean for w in ["is spoiled", "are spoiled", "went bad", "gone bad", "rotten"]):
         return ParseResult(action="query_expiring", items=[])
 
     if any(q in clean for q in ["what s in my kitchen", "what is in my kitchen", "what do i have",
@@ -168,15 +220,9 @@ def parse_kitchen_utterance(text: str) -> ParseResult:
     if any(q in clean for q in ["undo that", "undo", "revert"]):
         return ParseResult(action="undo", items=[])
 
-    # 2. Determine Action Intent (add vs consume)
-    action = "add"
-    if any(w in clean for w in ["used", "ate", "consumed", "finished", "cooked", "threw out", "discarded"]):
-        action = "consume"
-
-    # 3. Detect items mentioned in utterance
+    # 5. Detect items mentioned in utterance
     found_items: list[tuple[int, str, str, str]] = []  # (start_idx, item_name, zone, family)
     for name, zone, family in KNOWN_ITEMS:
-        # Match as whole word phrase
         pattern = r"\b" + re.escape(name) + r"\b"
         match = re.search(pattern, clean)
         if match:
@@ -198,6 +244,20 @@ def parse_kitchen_utterance(text: str) -> ParseResult:
 
     if not filtered_items:
         return ParseResult(action="unknown", items=[])
+
+    # 6. Check for Spoiled / Discard intent
+    if any(w in clean for w in ["is spoiled", "are spoiled", "spoiled", "went bad", "gone bad", "is rotten", "are rotten", "rotten", "throw away", "throw out", "toss out", "discard", "expired"]):
+        # Spoiled items discard entire stock; NO quantity needed!
+        return ParseResult(
+            action="discard",
+            items=[ParsedItem(item=name, qty=None, unit=None, zone=zone, needs_clarification=False)
+                   for _, name, zone, _ in filtered_items]
+        )
+
+    # 7. Action Intent: consume vs add
+    action = "add"
+    if any(w in clean for w in ["used", "ate", "consumed", "finished"]):
+        action = "consume"
 
     parsed_items: list[ParsedItem] = []
     unspecified_items: list[str] = []

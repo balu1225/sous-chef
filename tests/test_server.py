@@ -353,3 +353,69 @@ def test_manage_inventory_and_undo_end_to_end(server, db):
     q_after_undo = payload(tool(server, "query_inventory", {"item": "apples"}))
     assert q_after_undo["ok"] is True
     assert q_after_undo["found"] is False
+
+
+def test_api_cooking_and_timer_flow(server, db):
+    headers = {"Authorization": f"Bearer {TOKEN}"}
+
+    # 1. Start cooking spinach scramble
+    start_res = httpx.post(f"{server.base}/api/cooking", json={"action": "start", "recipe_id": "spinach_scramble"}, headers=headers)
+    assert start_res.status_code == 200
+    state = start_res.json()["active_cooking"]
+    assert state is not None
+    assert state["recipe"]["id"] == "spinach_scramble"
+    assert state["step"] == 1
+
+    # 2. Check prep item (e.g. eggs)
+    prep_res = httpx.post(f"{server.base}/api/cooking", json={"action": "check_prep", "item": "eggs"}, headers=headers)
+    assert prep_res.status_code == 200
+    assert "eggs" in prep_res.json()["active_cooking"]["checked_prep"]
+
+    # 3. Next step
+    next_res = httpx.post(f"{server.base}/api/cooking", json={"action": "next_step"}, headers=headers)
+    assert next_res.status_code == 200
+    assert next_res.json()["active_cooking"]["step"] == 2
+
+    # 4. Confirm timer alert action ("i stopped the stove" / "done")
+    confirm_res = httpx.post(f"{server.base}/api/converse", json={"utterance": "I stopped the stove"}, headers=headers)
+    assert confirm_res.status_code == 200
+    data = confirm_res.json()
+    assert data.get("action_confirmed") is True
+    assert data.get("resume_music") is True
+    assert "Stove is stopped" in data["spoken_message"] or "stove is stopped" in data["spoken_message"].lower()
+
+    # 5. Stop cooking
+    stop_res = httpx.post(f"{server.base}/api/cooking", json={"action": "stop"}, headers=headers)
+    assert stop_res.status_code == 200
+    assert stop_res.json()["active_cooking"] is None
+
+
+def test_api_converse_music_and_spoiled_food(server, db):
+    headers = {"Authorization": f"Bearer {TOKEN}"}
+
+    # Test music commands
+    music_res = httpx.post(f"{server.base}/api/converse", json={"utterance": "play cooking music"}, headers=headers)
+    assert music_res.status_code == 200
+    assert music_res.json().get("music_command") == "play"
+
+    stop_music_res = httpx.post(f"{server.base}/api/converse", json={"utterance": "stop music"}, headers=headers)
+    assert stop_music_res.status_code == 200
+    assert stop_music_res.json().get("music_command") == "stop"
+
+    # Add milk to inventory first
+    add_res = httpx.post(f"{server.base}/api/converse", json={"utterance": "I bought 1 gallon of milk"}, headers=headers)
+    assert add_res.status_code == 200
+    assert "milk" in add_res.json()["spoken_message"].lower()
+
+    # Discard spoiled milk
+    spoil_res = httpx.post(f"{server.base}/api/converse", json={"utterance": "the milk is spoiled"}, headers=headers)
+    assert spoil_res.status_code == 200
+    spoil_data = spoil_res.json()
+    assert "removing" in spoil_data["spoken_message"].lower() or "discarded" in spoil_data["spoken_message"].lower()
+
+    # Verify inventory no longer has milk
+    inv_res = httpx.get(f"{server.base}/api/inventory", headers=headers)
+    assert inv_res.status_code == 200
+    items = inv_res.json()["items"]
+    assert not any(i["item"] == "milk" for i in items)
+
