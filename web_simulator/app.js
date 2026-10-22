@@ -273,6 +273,13 @@ class SousChefVoiceApp {
     this.fetchNutrition();
     this.fetchCookingState();
     this.fetchRecipes();
+
+    // Periodic Live-Sync with physical Alexa Echo devices
+    setInterval(() => {
+      this.fetchCookingState();
+      this.fetchInventory();
+      this.fetchNutrition();
+    }, 3000);
   }
 
   // ------------------------------------------------------------------------
@@ -545,8 +552,12 @@ class SousChefVoiceApp {
       const res = await fetch('/api/cooking');
       if (res.ok) {
         const data = await res.json();
-        this.activeCooking = data.active_cooking;
-        this.renderCookingStation();
+        const incomingStr = JSON.stringify(data.active_cooking || null);
+        const currentStr = JSON.stringify(this.activeCooking || null);
+        if (incomingStr !== currentStr) {
+          this.activeCooking = data.active_cooking;
+          this.renderCookingStation();
+        }
       }
     } catch (err) {
       console.warn('Could not fetch cooking state:', err);

@@ -32,6 +32,11 @@ D = Decimal
 UNITS = {
     "count": ("count", D(1)), "each": ("count", D(1)), "item": ("count", D(1)),
     "piece": ("count", D(1)), "dozen": ("count", D(12)),
+    "carton": ("count", D(1)), "bottle": ("count", D(1)), "box": ("count", D(1)),
+    "bag": ("count", D(1)), "can": ("count", D(1)), "jar": ("count", D(1)),
+    "pack": ("count", D(1)), "package": ("count", D(1)), "container": ("count", D(1)),
+    "bunch": ("count", D(1)), "bar": ("count", D(1)), "clove": ("count", D(1)),
+    "slice": ("count", D(1)), "block": ("count", D(1)),
     "g": ("mass", D(1)), "gram": ("mass", D(1)), "kg": ("mass", D(1000)),
     "oz": ("mass", D("28.3495")), "lb": ("mass", D("453.592")),
     "lbs": ("mass", D("453.592")),
@@ -68,6 +73,8 @@ def normalize_unit(unit: str | None) -> str:
         return u
     if u.endswith("s") and u[:-1] in UNITS:
         return u[:-1]
+    if u.endswith("es") and u[:-2] in UNITS:
+        return u[:-2]
     raise LedgerError(f"Unknown unit '{unit}'")
 
 

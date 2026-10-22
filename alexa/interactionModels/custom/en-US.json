@@ -5,14 +5,30 @@
       "intents": [
         {
           "name": "AMAZON.CancelIntent",
-          "samples": []
+          "samples": [
+            "cancel",
+            "never mind"
+          ]
         },
         {
           "name": "AMAZON.HelpIntent",
-          "samples": []
+          "samples": [
+            "help",
+            "what can you do",
+            "help me"
+          ]
         },
         {
           "name": "AMAZON.StopIntent",
+          "samples": [
+            "stop",
+            "exit",
+            "quit",
+            "goodbye"
+          ]
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
           "samples": []
         },
         {
@@ -22,8 +38,10 @@
             "what is in my kitchen",
             "what do I have",
             "what is in the fridge",
+            "what is in the pantry",
             "what is about to expire",
-            "what is expiring soon"
+            "what is expiring soon",
+            "check my inventory"
           ]
         },
         {
@@ -38,6 +56,7 @@
             "what can I make",
             "what can I cook",
             "what can I make in {MaxMinutes} minutes",
+            "find a recipe in {MaxMinutes} minutes",
             "suggest a recipe",
             "what is for dinner"
           ]
@@ -62,9 +81,23 @@
             "I bought {Quantity} {Unit} of {FoodItem}",
             "I bought {Quantity} {FoodItem}",
             "add {Quantity} {FoodItem}",
+            "add {Quantity} {Unit} of {FoodItem}"
+          ]
+        },
+        {
+          "name": "DiscardInventoryIntent",
+          "slots": [
+            {
+              "name": "FoodItem",
+              "type": "AMAZON.Food"
+            }
+          ],
+          "samples": [
             "the {FoodItem} is spoiled",
+            "the {FoodItem} went bad",
             "discard the {FoodItem}",
-            "throw out the {FoodItem}"
+            "throw out the {FoodItem}",
+            "remove the {FoodItem}"
           ]
         },
         {
@@ -87,6 +120,32 @@
           ]
         },
         {
+          "name": "CookingStepIntent",
+          "slots": [
+            {
+              "name": "StepAction",
+              "type": "StepActionType"
+            }
+          ],
+          "samples": [
+            "{StepAction}",
+            "go to {StepAction}",
+            "what is {StepAction}",
+            "I am {StepAction}"
+          ]
+        },
+        {
+          "name": "NutritionIntent",
+          "slots": [],
+          "samples": [
+            "how many calories did I eat",
+            "how many calories have I consumed",
+            "what is my nutrition today",
+            "how much protein did I eat",
+            "show my daily macros"
+          ]
+        },
+        {
           "name": "SaveRecipeIntent",
           "slots": [
             {
@@ -101,7 +160,20 @@
           ]
         }
       ],
-      "types": []
+      "types": [
+        {
+          "name": "StepActionType",
+          "values": [
+            { "name": { "value": "next" } },
+            { "name": { "value": "next step" } },
+            { "name": { "value": "done" } },
+            { "name": { "value": "finished" } },
+            { "name": { "value": "made it" } },
+            { "name": { "value": "check" } },
+            { "name": { "value": "repeat" } }
+          ]
+        }
+      ]
     }
   }
 }

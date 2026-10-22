@@ -511,5 +511,168 @@ def test_amazon_bedrock_recipe_classifier(server):
     assert data.get("source") in ("amazon_bedrock", "deterministic_fallback")
 
 
+def test_alexa_skills_kit_integration(server, db):
+    seed(db)
+    headers = {"Authorization": f"Bearer {server.config.auth_token}"}
+
+    # 1. Alexa LaunchRequest
+    launch_payload = {
+        "version": "1.0",
+        "session": {"new": True, "sessionId": "amzn1.echo-api.session.test"},
+        "request": {
+            "type": "LaunchRequest",
+            "requestId": "amzn1.echo-api.request.launch",
+            "timestamp": "2026-10-22T00:00:00Z",
+            "locale": "en-US"
+        }
+    }
+    launch_res = httpx.post(f"{server.base}/alexa", json=launch_payload, headers=headers)
+    assert launch_res.status_code == 200
+    launch_body = launch_res.json()
+    assert launch_body["version"] == "1.0"
+    assert "outputSpeech" in launch_body["response"]
+    assert "Welcome to Sous-Chef" in launch_body["response"]["outputSpeech"]["text"]
+    assert launch_body["response"]["shouldEndSession"] is False
+    assert "card" in launch_body["response"]
+
+    # 2. Alexa QueryInventoryIntent
+    query_payload = {
+        "version": "1.0",
+        "session": {"new": False, "sessionId": "amzn1.echo-api.session.test"},
+        "request": {
+            "type": "IntentRequest",
+            "requestId": "amzn1.echo-api.request.query",
+            "timestamp": "2026-10-22T00:01:00Z",
+            "locale": "en-US",
+            "intent": {
+                "name": "QueryInventoryIntent",
+                "confirmationStatus": "NONE",
+                "slots": {}
+            }
+        }
+    }
+    query_res = httpx.post(f"{server.base}/api/converse", json=query_payload, headers=headers)
+    assert query_res.status_code == 200
+    query_body = query_res.json()
+    assert "You have" in query_body["response"]["outputSpeech"]["text"]
+    assert "card" in query_body["response"]
+
+    # 3. Alexa SuggestRecipeIntent
+    suggest_payload = {
+        "version": "1.0",
+        "session": {"new": False, "sessionId": "amzn1.echo-api.session.test"},
+        "request": {
+            "type": "IntentRequest",
+            "requestId": "amzn1.echo-api.request.suggest",
+            "timestamp": "2026-10-22T00:02:00Z",
+            "locale": "en-US",
+            "intent": {
+                "name": "SuggestRecipeIntent",
+                "confirmationStatus": "NONE",
+                "slots": {
+                    "MaxMinutes": {"name": "MaxMinutes", "value": "15"}
+                }
+            }
+        }
+    }
+    sug_res = httpx.post(f"{server.base}/alexa", json=suggest_payload, headers=headers)
+    assert sug_res.status_code == 200
+    sug_body = sug_res.json()
+    assert "outputSpeech" in sug_body["response"]
+    assert "Spinach & Cheddar Scramble" in sug_body["response"]["outputSpeech"]["text"] or "recipe" in sug_body["response"]["outputSpeech"]["text"].lower()
+
+    # Verify active cooking station now synced on server
+    cook_state_res = httpx.get(f"{server.base}/api/cooking", headers=headers)
+    assert cook_state_res.status_code == 200
+    assert cook_state_res.json()["active_cooking"] is not None
+
+    # 4. Alexa CookingStepIntent -> Next Step
+    step_payload = {
+        "version": "1.0",
+        "session": {"new": False, "sessionId": "amzn1.echo-api.session.test"},
+        "request": {
+            "type": "IntentRequest",
+            "requestId": "amzn1.echo-api.request.step",
+            "timestamp": "2026-10-22T00:03:00Z",
+            "locale": "en-US",
+            "intent": {
+                "name": "CookingStepIntent",
+                "confirmationStatus": "NONE",
+                "slots": {
+                    "StepAction": {"name": "StepAction", "value": "next"}
+                }
+            }
+        }
+    }
+    step_res = httpx.post(f"{server.base}/alexa", json=step_payload, headers=headers)
+    assert step_res.status_code == 200
+    assert "Step 2" in step_res.json()["response"]["outputSpeech"]["text"]
+
+    # 5. Alexa CookingMishapIntent -> Rescue
+    mishap_payload = {
+        "version": "1.0",
+        "session": {"new": False, "sessionId": "amzn1.echo-api.session.test"},
+        "request": {
+            "type": "IntentRequest",
+            "requestId": "amzn1.echo-api.request.mishap",
+            "timestamp": "2026-10-22T00:04:00Z",
+            "locale": "en-US",
+            "intent": {
+                "name": "CookingMishapIntent",
+                "confirmationStatus": "NONE",
+                "slots": {
+                    "Mishap": {"name": "Mishap", "value": "burned"}
+                }
+            }
+        }
+    }
+    mishap_res = httpx.post(f"{server.base}/alexa", json=mishap_payload, headers=headers)
+    assert mishap_res.status_code == 200
+    assert "burned" in mishap_res.json()["response"]["outputSpeech"]["text"].lower() or "heat" in mishap_res.json()["response"]["outputSpeech"]["text"].lower()
+
+    # 6. Alexa AddInventoryIntent
+    add_payload = {
+        "version": "1.0",
+        "session": {"new": False, "sessionId": "amzn1.echo-api.session.test"},
+        "request": {
+            "type": "IntentRequest",
+            "requestId": "amzn1.echo-api.request.add",
+            "timestamp": "2026-10-22T00:05:00Z",
+            "locale": "en-US",
+            "intent": {
+                "name": "AddInventoryIntent",
+                "confirmationStatus": "NONE",
+                "slots": {
+                    "Quantity": {"name": "Quantity", "value": "2"},
+                    "Unit": {"name": "Unit", "value": "cartons"},
+                    "FoodItem": {"name": "FoodItem", "value": "oat milk"}
+                }
+            }
+        }
+    }
+    add_res = httpx.post(f"{server.base}/alexa", json=add_payload, headers=headers)
+    assert add_res.status_code == 200
+    assert "Added 2 cartons of oat milk" in add_res.json()["response"]["outputSpeech"]["text"]
+
+    # 7. Alexa Stop / Session Ended
+    stop_payload = {
+        "version": "1.0",
+        "session": {"new": False, "sessionId": "amzn1.echo-api.session.test"},
+        "request": {
+            "type": "IntentRequest",
+            "requestId": "amzn1.echo-api.request.stop",
+            "timestamp": "2026-10-22T00:06:00Z",
+            "locale": "en-US",
+            "intent": {
+                "name": "AMAZON.StopIntent"
+            }
+        }
+    }
+    stop_res = httpx.post(f"{server.base}/alexa", json=stop_payload, headers=headers)
+    assert stop_res.status_code == 200
+    assert stop_res.json()["response"]["shouldEndSession"] is True
+
+
+
 
 

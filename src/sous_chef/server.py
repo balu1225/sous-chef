@@ -23,7 +23,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Annotated, Callable
+from typing import Annotated, Callable, Any
 import uuid
 
 import anyio
@@ -414,6 +414,40 @@ def _transport_security(config: Config) -> TransportSecuritySettings | None:
     return None  # FastMCP auto-enables protection when bound to localhost
 
 
+def make_alexa_response(
+    speech_text: str,
+    card_title: str | None = None,
+    card_content: str | None = None,
+    reprompt_text: str | None = None,
+    end_session: bool = False,
+) -> dict[str, Any]:
+    """Formats an Alexa Skills Kit (ASK) v1.0 standard JSON response."""
+    resp: dict[str, Any] = {
+        "outputSpeech": {
+            "type": "PlainText",
+            "text": speech_text,
+        },
+        "shouldEndSession": end_session,
+    }
+    if card_title and card_content:
+        resp["card"] = {
+            "type": "Simple",
+            "title": card_title,
+            "content": card_content,
+        }
+    if reprompt_text and not end_session:
+        resp["reprompt"] = {
+            "outputSpeech": {
+                "type": "PlainText",
+                "text": reprompt_text,
+            }
+        }
+    return {
+        "version": "1.0",
+        "response": resp,
+    }
+
+
 def build_app(config: Config, store_factory: Callable[[Config], Store] | None = None):
     """Build the ASGI app. `store_factory` lets tests inject a Store."""
     state = State(config=config)
@@ -594,6 +628,250 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
 
     async def api_converse(request: Request) -> JSONResponse:
         body = await request.json()
+
+        # -------------------------------------------------------------
+        # Alexa Skills Kit (ASK) Native Protocol Support
+        # -------------------------------------------------------------
+        if "request" in body and ("version" in body or "session" in body):
+            req = body.get("request", {})
+            req_type = req.get("type", "")
+
+            if req_type == "LaunchRequest":
+                return JSONResponse(make_alexa_response(
+                    speech_text="Welcome to Sous-Chef! I can track your groceries, suggest meals with what's in your fridge, guide your cooking step-by-step, or rescue mishaps. What would you like to cook?",
+                    card_title="Sous-Chef Voice Assistant",
+                    card_content="Welcome to Sous-Chef!\n\nTry saying:\n• 'What can I make in 15 minutes?'\n• 'What is in my kitchen?'\n• 'I bought 2 eggs'\n• 'I burned the food'",
+                    reprompt_text="You can ask: what can I cook for dinner, or what is in my kitchen."
+                ))
+
+            if req_type == "SessionEndedRequest":
+                return JSONResponse(make_alexa_response("Goodbye!", end_session=True))
+
+            if req_type == "IntentRequest":
+                intent = req.get("intent", {})
+                intent_name = intent.get("name", "")
+                slots = intent.get("slots", {}) or {}
+
+                if intent_name in ("AMAZON.StopIntent", "AMAZON.CancelIntent"):
+                    return JSONResponse(make_alexa_response("Happy cooking with Sous-Chef! Goodbye.", end_session=True))
+
+                if intent_name == "AMAZON.HelpIntent":
+                    return JSONResponse(make_alexa_response(
+                        speech_text="You can tell me what groceries you bought, ask what's in your fridge, ask for quick recipe ideas, or say 'help I burned the food' if you have a mishap. What would you like to do?",
+                        card_title="Sous-Chef Help",
+                        card_content="Try saying:\n• 'What can I make for dinner?'\n• 'What's in my fridge?'\n• 'I bought 1 gallon of milk'\n• 'The milk is spoiled'\n• 'How many calories did I eat?'",
+                        reprompt_text="What would you like to do?"
+                    ))
+
+                if intent_name == "AMAZON.FallbackIntent":
+                    return JSONResponse(make_alexa_response(
+                        speech_text="I didn't quite catch that. You can ask what's in your kitchen, or ask what can I make in 15 minutes.",
+                        reprompt_text="What would you like to cook?"
+                    ))
+
+                if state.store is None:
+                    return JSONResponse(make_alexa_response("Kitchen ledger is starting up. Please try again in a moment.", end_session=False))
+
+                led = state.store.ledger(state.config.household_id)
+
+                if intent_name == "QueryInventoryIntent":
+                    rows = await run_blocking(led.list_items, state.config.tool_timeout_s, retry_transient=True)
+                    active = [r for r in rows if r["qty"] > 0]
+                    if not active:
+                        msg = "Your kitchen is currently empty. Tell me what groceries you bought to add them!"
+                        card_txt = "Your kitchen is empty."
+                    else:
+                        items_spoken = ", ".join(format_spoken_quantity(r['qty'], r['unit'], r['item']) for r in active[:4])
+                        msg = f"You have {len(active)} items in your kitchen: {items_spoken}."
+                        card_txt = "\n".join(f"• {format_spoken_quantity(r['qty'], r['unit'], r['item'])} ({r.get('zone', 'pantry')})" for r in active)
+                    return JSONResponse(make_alexa_response(
+                        msg,
+                        card_title="Kitchen Inventory",
+                        card_content=card_txt,
+                        reprompt_text="What would you like to cook with these items?"
+                    ))
+
+                if intent_name == "SuggestRecipeIntent":
+                    max_min_raw = slots.get("MaxMinutes", {}).get("value")
+                    max_min = int(max_min_raw) if max_min_raw and str(max_min_raw).isdigit() else None
+                    rows = await run_blocking(led.list_items, state.config.tool_timeout_s, retry_transient=True)
+                    active = [_item_view(r) for r in rows if r["qty"] > 0]
+                    recipes = get_all_recipes(state.store, state.config.household_id)
+                    match_res = match_recipes(active, max_minutes=max_min, recipes=recipes)
+                    top = match_res.get("top_pick")
+                    if top:
+                        state.active_cooking = {
+                            "recipe": top,
+                            "step": 1,
+                            "checked_prep": [],
+                            "servings": top.get("servings", 2)
+                        }
+                        ing_lines = "\n".join(f"• {i['qty']} {i['unit']} {i['item']}" for i in top.get("ingredients", []))
+                        card_txt = f"Recipe: {top['name']}\nPrep: {top.get('prep_minutes', 15)} mins | Servings: {top.get('servings', 2)}\n\nIngredients:\n{ing_lines}"
+                        msg = f"{match_res['spoken_message']} Say 'next' when you're ready to start step 1."
+                    else:
+                        msg = match_res["spoken_message"]
+                        card_txt = msg
+                    return JSONResponse(make_alexa_response(
+                        msg,
+                        card_title=f"Recipe: {top['name']}" if top else "Recipe Suggestions",
+                        card_content=card_txt,
+                        reprompt_text="Say 'next' to begin cooking, or ask for another suggestion."
+                    ))
+
+                if intent_name in ("AddInventoryIntent", "ManageInventoryIntent"):
+                    food_item = (slots.get("FoodItem", {}).get("value") or "").strip()
+                    qty_str = (slots.get("Quantity", {}).get("value") or "1").strip()
+                    unit_str = (slots.get("Unit", {}).get("value") or "count").strip()
+                    try:
+                        qty_val = float(qty_str)
+                    except ValueError:
+                        qty_val = 1.0
+
+                    if food_item:
+                        try:
+                            from ledger import normalize_unit
+                            normalized_u = normalize_unit(unit_str)
+                        except Exception:
+                            normalized_u = "count"
+
+                        ops = [{"type": "add", "item": food_item.lower(), "qty": qty_val, "unit": normalized_u, "zone": "pantry"}]
+                        batch_res = await run_blocking(lambda: led.apply_batch(ops, idempotency_key=str(uuid.uuid4())),
+                                                     state.config.tool_timeout_s, retry_transient=False)
+                        msg = f"Added {qty_val:g} {unit_str} of {food_item} to your kitchen."
+                        return JSONResponse(make_alexa_response(
+                            msg,
+                            card_title="Added to Kitchen",
+                            card_content=f"Added: {qty_val:g} {unit_str} {food_item}",
+                            reprompt_text="What else did you buy, or what would you like to cook?"
+                        ))
+
+                if intent_name == "DiscardInventoryIntent":
+                    food_item = (slots.get("FoodItem", {}).get("value") or "").strip().lower()
+                    if food_item:
+                        rows = await run_blocking(led.list_items, state.config.tool_timeout_s, retry_transient=True)
+                        active_items = {r["item"].lower().strip(): r for r in rows if r["qty"] > 0}
+                        matched = active_items.get(food_item)
+                        if not matched:
+                            for name, r in active_items.items():
+                                if food_item in name or name in food_item:
+                                    matched = r
+                                    break
+                        if matched:
+                            ops = [{"type": "discard", "item": matched["item"], "qty": matched["qty"], "unit": matched["unit"], "zone": matched["zone"]}]
+                            await run_blocking(lambda: led.apply_batch(ops, idempotency_key=str(uuid.uuid4())),
+                                               state.config.tool_timeout_s, retry_transient=False)
+                            msg = f"I've removed the {matched['item']} from your kitchen."
+                        else:
+                            msg = f"I checked your kitchen, but you don't have {food_item} in stock."
+                        return JSONResponse(make_alexa_response(
+                            msg,
+                            card_title="Discarded Item",
+                            card_content=msg,
+                            reprompt_text="What would you like to cook or check next?"
+                        ))
+
+                if intent_name == "CookingMishapIntent":
+                    mishap = (slots.get("Mishap", {}).get("value") or "burned").strip().lower()
+                    remedy_data = get_remedy_for_mishap(mishap)
+                    return JSONResponse(make_alexa_response(
+                        speech_text=remedy_data["spoken_message"],
+                        card_title=f"Kitchen Rescue: {mishap.title()}",
+                        card_content=f"Fix: {remedy_data.get('action', '')}\n\n{remedy_data.get('spoken_message', '')}",
+                        reprompt_text="Say 'continue' or 'I checked it' to get back to your recipe."
+                    ))
+
+                if intent_name == "CookingStepIntent":
+                    step_action = (slots.get("StepAction", {}).get("value") or "next").strip().lower()
+                    if not state.active_cooking:
+                        msg = "You don't have an active recipe cooking. Ask 'What can I make for dinner?' to start one!"
+                        return JSONResponse(make_alexa_response(msg, reprompt_text="What would you like to cook?"))
+
+                    recipe = state.active_cooking["recipe"]
+                    steps = recipe.get("steps", [])
+
+                    if any(w in step_action for w in ("done", "finished", "made", "complete")):
+                        servings = float(state.active_cooking.get("servings", recipe.get("servings", 2)))
+                        cook_res = await run_blocking(
+                            lambda: execute_cooking_deduction(led, recipe, servings, str(uuid.uuid4()), state.store, state.config.household_id),
+                            state.config.tool_timeout_s, retry_transient=False
+                        )
+                        state.last_cooked_meal = recipe
+                        state.active_cooking = None
+                        msg = cook_res["spoken_message"]
+                        return JSONResponse(make_alexa_response(
+                            msg,
+                            card_title=f"Meal Logged: {recipe['name']}",
+                            card_content=f"Cooked: {recipe['name']}\nServings: {servings}\n\nIngredients automatically deducted from kitchen ledger.",
+                            end_session=False
+                        ))
+                    else:
+                        # Advance step
+                        curr = state.active_cooking["step"]
+                        if curr < len(steps):
+                            state.active_cooking["step"] += 1
+                            next_s = steps[state.active_cooking["step"] - 1]
+                            timer_hint = f" Set a {next_s['timer_seconds'] // 60} minute timer if needed." if next_s.get("timer_seconds") else ""
+                            msg = f"Step {state.active_cooking['step']}: {next_s['instruction']}{timer_hint}"
+                        else:
+                            msg = f"That was the final step for {recipe['name']}! Say 'I'm done' or 'I made it' to deduct the ingredients and log your nutrition."
+                        return JSONResponse(make_alexa_response(
+                            msg,
+                            card_title=f"{recipe['name']} - Step {state.active_cooking['step']}",
+                            card_content=msg,
+                            reprompt_text="Say 'next' when ready, or 'I made it' when finished."
+                        ))
+
+                if intent_name == "NutritionIntent":
+                    nutr = await run_blocking(lambda: get_daily_nutrition(state.store, state.config.household_id),
+                                              state.config.tool_timeout_s, retry_transient=True)
+                    return JSONResponse(make_alexa_response(
+                        speech_text=nutr["spoken_summary"],
+                        card_title="Daily Nutrition Summary",
+                        card_content=f"Calories: {nutr.get('calories_today', 0)} kcal\nProtein: {nutr.get('protein_today_g', 0)}g\nMeals logged: {nutr.get('meals_logged', 0)}",
+                        reprompt_text="What would you like to cook or check next?"
+                    ))
+
+                if intent_name == "SaveRecipeIntent":
+                    rec_name = (slots.get("RecipeName", {}).get("value") or "My Recipe").strip().title()
+                    ingredients = []
+                    if state.active_cooking and state.active_cooking.get("recipe"):
+                        ingredients = state.active_cooking["recipe"].get("ingredients", [])
+                    elif state.last_cooked_meal and state.last_cooked_meal.get("ingredients"):
+                        ingredients = state.last_cooked_meal.get("ingredients", [])
+
+                    if ingredients:
+                        recipe_uuid = str(uuid.uuid4())
+                        servings = 2.0
+                        prep_minutes = 15
+                        with state.store.pool.connection() as conn:
+                            conn.execute("INSERT INTO households (household_id) VALUES (%s) ON CONFLICT DO NOTHING", (state.config.household_id,))
+                            conn.execute(
+                                "INSERT INTO custom_recipes (recipe_id, household_id, name, servings, prep_minutes, ingredients, steps) "
+                                "VALUES (%s, %s, %s, %s, %s, %s, %s) "
+                                "ON CONFLICT (household_id, name) DO UPDATE SET "
+                                "servings = EXCLUDED.servings, prep_minutes = EXCLUDED.prep_minutes, "
+                                "ingredients = EXCLUDED.ingredients, steps = EXCLUDED.steps",
+                                (recipe_uuid, state.config.household_id, rec_name, servings, prep_minutes,
+                                 json.dumps(ingredients), json.dumps([]))
+                            )
+                        nutr = calculate_meal_nutrition(ingredients)
+                        kcal = round(nutr["total_kcal"] / servings, 1)
+                        prot = round(nutr["total_protein_g"] / servings, 1)
+                        msg = f"Saved your recipe for {rec_name}! Each serving has approximately {kcal:.0f} calories and {prot:.0f} grams of protein."
+                    else:
+                        msg = f"I'd love to save '{rec_name}', but no recent meal was found. Try asking 'What can I make?' first!"
+                    return JSONResponse(make_alexa_response(
+                        msg,
+                        card_title=f"Saved Recipe: {rec_name}",
+                        card_content=msg,
+                        reprompt_text="What would you like to cook next?"
+                    ))
+
+                # Fallback for unrecognized custom intents
+                msg = "I heard your request. You can ask: 'What can I make in 15 minutes?', 'What is in my kitchen?', or 'I bought 2 eggs'."
+                return JSONResponse(make_alexa_response(msg, reprompt_text="What would you like to cook?"))
+
         utterance = body.get("utterance", "")
 
         if state.store is None:
@@ -931,6 +1209,7 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                             Route("/api/recipes", api_recipes, methods=["GET", "POST"]),
                             Route("/api/cooking", api_cooking, methods=["GET", "POST"]),
                             Route("/api/converse", api_converse, methods=["POST"]),
+                            Route("/alexa", api_converse, methods=["POST"]),
                             Route("/healthz", healthz, methods=["GET"]),
                             Route("/readyz", readyz, methods=["GET"]),
                             Mount("/", app=mcp_app)],
