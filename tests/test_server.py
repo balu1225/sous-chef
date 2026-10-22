@@ -608,6 +608,44 @@ def test_alexa_skills_kit_integration(server, db):
     assert step_res.status_code == 200
     assert "Step 2" in step_res.json()["response"]["outputSpeech"]["text"]
 
+    # 4b. Alexa AMAZON.PreviousIntent -> Step 1
+    prev_payload = {
+        "version": "1.0",
+        "session": {"new": False, "sessionId": "amzn1.echo-api.session.test"},
+        "request": {
+            "type": "IntentRequest",
+            "requestId": "amzn1.echo-api.request.prev",
+            "timestamp": "2026-10-22T00:03:30Z",
+            "locale": "en-US",
+            "intent": {
+                "name": "AMAZON.PreviousIntent",
+                "confirmationStatus": "NONE"
+            }
+        }
+    }
+    prev_res = httpx.post(f"{server.base}/alexa", json=prev_payload, headers=headers)
+    assert prev_res.status_code == 200
+    assert "Step 1" in prev_res.json()["response"]["outputSpeech"]["text"]
+
+    # 4c. Alexa AMAZON.NextIntent -> Step 2
+    next_payload = {
+        "version": "1.0",
+        "session": {"new": False, "sessionId": "amzn1.echo-api.session.test"},
+        "request": {
+            "type": "IntentRequest",
+            "requestId": "amzn1.echo-api.request.next",
+            "timestamp": "2026-10-22T00:03:45Z",
+            "locale": "en-US",
+            "intent": {
+                "name": "AMAZON.NextIntent",
+                "confirmationStatus": "NONE"
+            }
+        }
+    }
+    next_res = httpx.post(f"{server.base}/alexa", json=next_payload, headers=headers)
+    assert next_res.status_code == 200
+    assert "Step 2" in next_res.json()["response"]["outputSpeech"]["text"]
+
     # 5. Alexa CookingMishapIntent -> Rescue
     mishap_payload = {
         "version": "1.0",

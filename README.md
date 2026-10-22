@@ -1,95 +1,139 @@
-# 🍳 Sous-Chef: Voice-First Kitchen Assistant & Inventory Ledger
+# 🍳 Sous-Chef: Multimodal Alexa+ Kitchen Assistant & FastMCP Server
 
 > **Build, Ship, Shape: Amazon Developer Hackathon (Alexa+ Track)**  
 > *Mini-challenges: AWS Builder · Open Source*
 
-Sous-Chef is a voice-first kitchen assistant for inventory management, meal planning, and nutrition built on the **Model Context Protocol (FastMCP 1.30.0)** and a **PostgreSQL 17 append-only ledger**.
+Sous-Chef is a voice-first, multimodal kitchen assistant and inventory ledger built for **Amazon Alexa+**. It combines a high-performance **FastMCP 1.30.0 Streamable HTTP server** (`spec 2025-11-25`), an authentic **Amazon Polly Neural voice** engine (`Joanna`), an append-only **PostgreSQL 17** inventory ledger, and an **Apple-designed Echo Show web companion simulator**.
 
 ---
 
 ## 🌟 Key Features
 
-- 🎙️ **Conversational Voice Intake:** Speak naturally (*"I bought 2 gallons of milk, 6 eggs, and spinach"*) or type via the glassmorphic Web Companion Simulator.
-- 🛡️ **Zero-Guessing Ambiguity Resolution:** If you say *"add milk and eggs"*, Sous-Chef politely asks for clarification (*"How much of the milk and eggs did you add?"*) before committing any changes.
-- 📜 **Append-Only Postgres Ledger:** Physical inventory changes are recorded as immutable event log entries protected by database-level triggers blocking `UPDATE` and `DELETE`.
-- 🥗 **USDA FoodData Central Nutrition:** Deterministic nutrition engine with ~50 canonical ingredients calculating real-time calories and protein.
-- ⚡ **Strict FastMCP 1.30.0 Streamable HTTP:** Pinned to protocol `2025-11-25` delivering sub-50ms responses to beat Alexa's strict 500ms voice turn SLA.
-- ↺ **One-Shot Undo:** Say *"Undo that"* to revert accidental additions without mutating audit history.
+### 1. ⚡ FastMCP 1.30.0 Streamable HTTP Server
+- Fully compliant with **FastMCP 1.30.0** and **MCP Protocol Specification `2025-11-25`**.
+- Native Streamable HTTP `/mcp` transport delivering **sub-50ms tool execution** to easily satisfy Alexa's strict 500ms voice turn SLA.
+- Dual-mode endpoints: `/mcp` for Alexa+ Agent tools and `/alexa` for direct Alexa Skills Kit JSON payloads.
+
+### 2. 🎙️ Amazon Polly Neural Voice & Bidirectional Touch-to-Voice
+- Powered by **Amazon Polly Neural** (`VoiceId="Joanna"`), delivering authentic, natural Alexa speech.
+- Intelligent local MD5 audio disk caching in `.cache/polly_audio/` for instant replay and sub-millisecond response latency.
+- Seamless graceful fallback to browser speech synthesis when AWS credentials are not configured.
+- **Bidirectional Multimodal Loop:** Tapping a cooking step, prep ingredient, or recipe card immediately triggers Alexa's voice instructions and advances the visual state.
+
+### 3. 🍳 Tactical Recipe Phase & Active Timer Bar
+- Replaces legacy music scrubber metaphors with a purpose-driven **Culinary Phase Bar** (`Step 1 of 4 · Prep` ── `Step 2 · Sauté`).
+- Embedded active countdown timer (`⏱️ 01:00 remaining`) with tactile audio chimes and voice alerts.
+- Dedicated tactical kitchen controls: `[◀ Prev Step]`, `[⏱️ Start Timer]`, `[Next Step ▶]`, and `[✓ Complete Meal]`.
+
+### 4. 📖 Family Cookbook & 1-Click Recipe Sharing
+- Curated collection of healthy, quick recipes tailored to in-stock groceries.
+- **1-Click Share:** Uses native Web Share API (`navigator.share`) and deep-link copying to easily share recipes with friends and family.
+- Custom recipe creation with automatic calorie and macronutrient projection.
+
+### 5. 📦 Household Freshness & Spoilage Prevention Index
+- Real-time **Kitchen Health Gauge** (🟢 Peak Fresh, 🟡 Expiring Soon, 🔴 Left Outside Risk).
+- Location-aware shelf-life heuristics: identifies perishable groceries (milk, chicken, beef, yogurt) left outside in the pantry with instant 1-tap `[❄️ Move to Fridge]` rescue.
+- Strict FIFO duplicate batch protection to prevent food waste.
+
+### 6. 📜 Append-Only PostgreSQL 17 Inventory Ledger
+- Physical inventory events are immutably logged with database-level triggers blocking unauthorized `UPDATE` and `DELETE` mutations.
+- Multi-client concurrency protection via PostgreSQL advisory locking.
+- One-shot undo capability (*"Undo that"*) without rewriting audit history.
+
+### 7. 🥗 USDA FoodData Central Nutrition & Kinetic Rings
+- Deterministic nutrition calculations based on USDA FoodData Central 100g macro profiles.
+- Kinetic Apple Health-style rings tracking daily calorie and protein burn goals.
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ System Architecture
 
 ```mermaid
 graph TD
-    User["🗣️ Voice / Web Speech STT"] --> UI["🖥️ Glassmorphic Web Companion"]
-    Alexa["🔊 Alexa+ Voice Assistant"] --> Tunnel["🔒 Cloudflare Named Tunnel"]
-    UI --> Server["⚡ FastMCP 1.30.0 Server (/mcp)"]
-    Tunnel --> Server
+    User["🗣️ Alexa Voice / Echo Dot"] --> Tunnel["🔒 Cloudflare Tunnel"]
+    UserEcho["🖥️ Echo Show / Web Companion"] --> API["🌐 Web Server (:8000)"]
+    Tunnel --> API
     
-    subgraph "Core Server (src/sous_chef/)"
-        Server --> Parser["Rule-Based Amount Parser (Zero-Guess)"]
-        Server --> LedgerEngine["Ledger Store & Advisory Lock"]
-        Server --> NutritionEngine["USDA Nutrition Engine (100g base)"]
-        Server --> RecipeMatcher["Deterministic Recipe Matcher"]
+    subgraph "Sous-Chef Core (src/sous_chef/)"
+        API --> FastMCP["⚡ FastMCP 1.30.0 Streamable HTTP (/mcp)"]
+        API --> AlexaHandler["🔊 Alexa Skills Kit Dispatcher (/alexa)"]
+        API --> Polly["🗣️ Amazon Polly Neural Synthesizer (/api/tts)"]
+        API --> Parser["📐 Rule-Based Amount Parser (Zero-Guessing)"]
+        API --> ShelfLife["⏳ Location Shelf-Life & Spoilage Engine"]
+        API --> Nutrition["🥗 USDA FoodData Central Engine"]
+        API --> LedgerStore["🐘 Ledger Store & Advisory Locks"]
     end
     
-    LedgerEngine --> Postgres[("🐘 PostgreSQL 17 Append-Only Ledger<br/>Events, Batches & Inventory")]
-    RecipeMatcher --> Bedrock["☁️ Amazon Bedrock Converse API"]
+    LedgerStore --> Postgres[("🐘 PostgreSQL 17 Immutable Ledger")]
+    API --> Bedrock["☁️ Amazon Bedrock Converse API"]
 ```
 
 ---
 
 ## 🚀 Quickstart
 
-### 1. Prerequisites
+### Prerequisites
 - **Python 3.10+** (Tested on Python 3.13)
-- **Node.js 18+**
-- **PostgreSQL 14+** (Running locally or hosted)
+- **PostgreSQL 14+** (PostgreSQL 17 recommended)
+- **AWS Credentials** (Optional, for Polly Neural & Bedrock Converse)
 
-### 2. Setup Environment
+### 1. Installation
 ```bash
-# Clone the repository
 git clone https://github.com/balu1225/sous-chef.git
 cd sous-chef
-
-# Create and activate virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
-
-# Install dependencies
 pip install -r requirements.txt
 ```
 
-### 3. Database Initialization
+### 2. Configure Environment
 ```bash
-# Copy and configure environment variables
 cp .env.example .env
+# Edit .env with your DATABASE_URL, AWS_REGION, etc.
+```
 
-# Apply PostgreSQL schema
+### 3. Initialize Database
+```bash
 psql -d kitchen -f db/schema.sql
 ```
 
-### 4. Run the FastMCP & Web Companion Server
+### 4. Start the Server
 ```bash
-python3 src/sous_chef/server.py
+PYTHONPATH=src:src/sous_chef python src/sous_chef/server.py
 ```
-Open **`http://localhost:8000`** in Chrome or Edge to launch the interactive **Web Voice Companion Simulator**.
+Open **`http://localhost:8000`** in Chrome, Safari, or Edge to experience the interactive Echo Show Web Companion.
 
 ---
 
-## 🧪 Running Automated Tests
+## 🧪 Comprehensive Automated Test Suite
 
-Run the complete 46-test unit and integration test suite:
+Sous-Chef includes **68 automated tests** covering ledger invariants, protocol negotiation, Alexa Skills Kit intents, and shelf-life logic:
+
 ```bash
-PYTHONPATH=src/sous_chef:src pytest -v
+PYTHONPATH=src:src/sous_chef pytest tests/ -v
 ```
 
-All 46 tests run in under 10 seconds verifying:
-- Append-only event immutability & advisory locking
-- FastMCP protocol negotiation (`2025-11-25`)
-- Zero-guessing ambiguity and clarification flows
-- Multi-client concurrency and row-level isolation
+```
+tests/test_amount_parser.py ............ [ 20%]
+tests/test_ledger.py ................... [ 39%]
+tests/test_server.py ................... [ 95%]
+tests/test_shelf_life.py ............... [100%]
+======================= 68 passed in 16.73s =======================
+```
+
+---
+
+## 🛠️ FastMCP Tools Reference
+
+| Tool Name | Scope | Description |
+|---|---|---|
+| `manage_inventory` | Write | Atomically adds, consumes, or modifies grocery items with zero-guessing clarification. |
+| `query_inventory` | Read | Queries current inventory by item, location, or expiration threshold. |
+| `suggest_recipes` | Read | Scores recipes deterministically against on-hand ingredients and expiry priority. |
+| `get_daily_nutrition` | Read | Aggregates consumed calories, protein, and meals logged for the current date. |
+| `get_cooking_remedy` | Read | Instant actionable fixes for culinary emergencies (oversalted, burned, dry). |
+| `execute_cooking_deduction` | Write | Atomically deducts ingredients upon meal completion and projects nutritional gains. |
+| `save_custom_recipe` | Write | Saves a family recipe with custom serving sizes and step instructions. |
 
 ---
 

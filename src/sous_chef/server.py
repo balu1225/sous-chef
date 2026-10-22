@@ -939,8 +939,8 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                         reprompt_text="Say 'continue' or 'I checked it' to get back to your recipe."
                     ))
 
-                if intent_name == "CookingStepIntent":
-                    step_action = (slots.get("StepAction", {}).get("value") or "next").strip().lower()
+                if intent_name in ("CookingStepIntent", "AMAZON.NextIntent", "AMAZON.PreviousIntent"):
+                    step_action = (slots.get("StepAction", {}).get("value") or ("previous" if intent_name == "AMAZON.PreviousIntent" else "next")).strip().lower()
                     if not state.active_cooking:
                         msg = "You don't have an active recipe cooking. Ask 'What can I make for dinner?' to start one!"
                         return JSONResponse(make_alexa_response(msg, reprompt_text="What would you like to cook?"))
@@ -962,6 +962,21 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                             card_title=f"Meal Logged: {recipe['name']}",
                             card_content=f"Cooked: {recipe['name']}\nServings: {servings}\n\nIngredients automatically deducted from kitchen ledger.",
                             end_session=False
+                        ))
+                    elif any(w in step_action for w in ("prev", "previous", "back", "repeat")):
+                        # Move to previous step
+                        curr = state.active_cooking["step"]
+                        if curr > 1:
+                            state.active_cooking["step"] -= 1
+                        prev_s = steps[state.active_cooking["step"] - 1]
+                        timer_hint = f" Set a {prev_s['timer_seconds'] // 60} minute timer if needed." if prev_s.get("timer_seconds") else ""
+                        screen_hint = "You can see the step on your screen." if state.is_screen_active() else "Follow along on your Sous-Chef screen."
+                        msg = f"Going back to Step {state.active_cooking['step']}: {prev_s['instruction']}{timer_hint} {screen_hint}"
+                        return JSONResponse(make_alexa_response(
+                            msg,
+                            card_title=f"{recipe['name']} - Step {state.active_cooking['step']}",
+                            card_content=msg,
+                            reprompt_text="Say 'next' when ready to move on."
                         ))
                     else:
                         # Advance step

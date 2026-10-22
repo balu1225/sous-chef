@@ -28,6 +28,24 @@
           ]
         },
         {
+          "name": "AMAZON.NextIntent",
+          "samples": [
+            "next",
+            "next step",
+            "continue",
+            "what's next"
+          ]
+        },
+        {
+          "name": "AMAZON.PreviousIntent",
+          "samples": [
+            "previous",
+            "previous step",
+            "go back",
+            "repeat step"
+          ]
+        },
+        {
           "name": "AMAZON.FallbackIntent",
           "samples": []
         },
