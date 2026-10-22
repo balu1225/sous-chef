@@ -2,369 +2,365 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sous-Chef | Voice-First Kitchen Assistant</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Sous-Chef | Cinematic Kitchen Assistant</title>
+  <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
-<body>
-  <div class="app-container">
-    <!-- Header -->
-    <header class="app-header">
-      <div class="brand">
-        <div class="brand-badge">ALEXA+ SIMULATOR</div>
-        <h1>Sous-Chef</h1>
+<body class="apple-canvas">
+  <!-- Ambient Dynamic Aura Background -->
+  <div class="ambient-backdrop" id="ambient-backdrop"></div>
+
+  <div class="app-window">
+    <!-- Top Chrome Bar (Mac / Apple TV Style) -->
+    <header class="window-header">
+      <div class="window-traffic-lights">
+        <span class="light close"></span>
+        <span class="light min"></span>
+        <span class="light max"></span>
+        <span class="app-brand-title">Sous-Chef</span>
       </div>
 
-      <!-- Cooking Ambience Music Bar -->
-      <div class="music-pill" id="music-pill">
-        <button class="music-btn" id="music-btn" title="Toggle Lo-Fi Kitchen Music">
-          <span class="music-icon">🎵</span>
-          <span id="music-btn-label">Ambience: Off</span>
+      <!-- Mode Switcher Tabs (Now Cooking | Kitchen Storage) -->
+      <nav class="center-segmented-nav">
+        <button class="nav-segment active" id="mode-cooking-btn" data-mode="cooking">
+          <span class="seg-icon">🍳</span> Now Cooking
         </button>
-        <div class="music-bars" id="music-bars">
-          <span class="bar bar-1"></span>
-          <span class="bar bar-2"></span>
-          <span class="bar bar-3"></span>
-        </div>
-        <input type="range" id="music-vol" min="0" max="100" value="25" title="Music Volume" class="music-slider">
-      </div>
+        <button class="nav-segment" id="mode-storage-btn" data-mode="storage">
+          <span class="seg-icon">📦</span> Kitchen Storage
+        </button>
+      </nav>
 
-      <div class="header-status">
-        <div class="status-indicator">
-          <span class="pulse-dot"></span>
-          <span id="mcp-status">FastMCP 1.30.0 Connected</span>
+      <!-- Right Window Utilities -->
+      <div class="header-right-tools">
+        <!-- Audio Ambience Pill -->
+        <div class="ambience-control" id="ambience-control">
+          <button class="ambience-toggle-btn" id="music-btn" title="Toggle Lo-Fi Cooking Ambience">
+            <svg class="speaker-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+            </svg>
+          </button>
+          <input type="range" id="music-vol" min="0" max="100" value="30" class="mini-volume-slider" title="Ambience Volume">
         </div>
-        <div class="metric-chip">
-          <span class="metric-label">Latency</span>
-          <span class="metric-value" id="latency-metric">-- ms</span>
+
+        <!-- Alexa+ Live Indicator -->
+        <div class="connection-status-pill" title="FastMCP Streamable HTTP 2025-11-25">
+          <span class="pulse-beacon"></span>
+          <span class="status-text" id="mcp-status">Alexa+ Live</span>
         </div>
       </div>
     </header>
 
-    <!-- Main Grid -->
-    <main class="main-layout">
-      <!-- Left Column: Voice Orb & Conversation -->
-      <section class="voice-section glass-panel">
-        <div class="orb-container">
-          <div class="orb-aura"></div>
-          <div class="voice-orb" id="voice-orb">
-            <div class="orb-core"></div>
+    <!-- Main Dynamic Stage -->
+    <main class="cinematic-stage" id="cinematic-stage">
+
+      <!-- ============================================================ -->
+      <!-- VIEW 1: CINEMATIC COOKING (Apple Music Now Playing Mode)     -->
+      <!-- ============================================================ -->
+      <section class="stage-view now-cooking-view active" id="view-now-cooking">
+        <!-- Left Column: Album Art / Dish Hero Card & Scrub Bar -->
+        <div class="hero-player-column">
+          <div class="dish-cover-artwork" id="dish-cover-artwork">
+            <div class="artwork-image-wrapper">
+              <div class="artwork-fallback-icon" id="dish-artwork-emoji">🍳</div>
+              <div class="artwork-glow"></div>
+            </div>
+            
+            <div class="dish-metadata">
+              <div class="dish-header-row">
+                <div class="dish-titles">
+                  <h1 class="dish-name" id="dish-name">Spinach & Cheddar Scramble</h1>
+                  <p class="dish-sub" id="dish-sub">10 min · 2 servings · ~320 kcal</p>
+                </div>
+                <div class="dish-actions">
+                  <button class="icon-action-btn star-btn" id="star-recipe-btn" title="Save to Family Cookbook">★</button>
+                  <button class="icon-action-btn menu-btn" id="custom-recipe-open-btn" title="Add Custom Recipe">⋯</button>
+                </div>
+              </div>
+
+              <!-- Recipe Servings Scaler (Apple 1-Click [1x | 2x | 4x]) -->
+              <div class="scaler-segmented-bar">
+                <span class="scaler-caption">Scale:</span>
+                <button type="button" class="scale-chip" data-scale="1">1x</button>
+                <button type="button" class="scale-chip active" data-scale="2">2x</button>
+                <button type="button" class="scale-chip" data-scale="4">4x</button>
+              </div>
+
+              <!-- Step Timer Progress Scrubber -->
+              <div class="step-scrubber-container">
+                <div class="scrubber-track">
+                  <div class="scrubber-fill" id="scrubber-fill" style="width: 0%;"></div>
+                </div>
+                <div class="scrubber-time-row">
+                  <span class="scrub-time" id="scrub-elapsed">00:00</span>
+                  <span class="scrub-time" id="scrub-remaining">-00:00</span>
+                </div>
+              </div>
+
+              <!-- Apple-Style Transport Playback Bar -->
+              <div class="transport-controls-bar">
+                <button class="transport-btn secondary" id="prev-step-btn" title="Previous Step (Left Arrow)">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+                </button>
+                <button class="transport-btn primary-play" id="timer-toggle-btn" title="Play/Pause Timer (Space)">
+                  <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  <svg class="pause-icon hidden" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                </button>
+                <button class="transport-btn secondary" id="next-step-btn" title="Next Step (Right Arrow)">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+                </button>
+                <button class="transport-btn finish-btn" id="finish-meal-btn" title="I Made It! (Deduct Ingredients)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                </button>
+              </div>
+            </div>
           </div>
-          <div class="orb-ring ring-1"></div>
-          <div class="orb-ring ring-2"></div>
         </div>
 
-        <div class="voice-state-label" id="voice-state">Tap Mic or Type to Speak</div>
-
-        <!-- Live Captions & Dialogue -->
-        <div class="transcript-box" id="transcript-box">
-          <div class="transcript-entry assistant">
-            <span class="speaker-tag">Sous-Chef</span>
-            <p>Welcome to Sous-Chef! I'm your kitchen voice assistant. Try asking <em>"What can I make in 15 minutes?"</em>, <em>"The milk is spoiled"</em>, or say <em>"I bought 2 gallons of milk and a dozen eggs."</em></p>
+        <!-- Right Column: Apple Music Synchronized Live Lyrics (Cooking Steps) -->
+        <div class="lyrics-stream-column">
+          <div class="lyrics-sub-header">
+            <span class="lyrics-mode-label" id="stream-status-label">ACTIVE STEP</span>
+            <div class="step-mode-switch">
+              <button class="stream-tab active" id="tab-show-steps">Steps</button>
+              <button class="stream-tab" id="tab-show-prep">Prep (<span id="prep-ready-count">0/4</span>)</button>
+            </div>
           </div>
-        </div>
 
-        <!-- Controls -->
-        <div class="voice-controls">
-          <button class="mic-button" id="mic-btn" title="Toggle Voice Recognition">
-            <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-              <line x1="12" y1="19" x2="12" y2="22"/>
-            </svg>
-          </button>
-          
-          <form class="text-input-form" id="chat-form">
-            <input type="text" id="text-input" placeholder="Type a kitchen command or question..." autocomplete="off">
-            <button type="submit" id="send-btn" class="send-button">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="22" y1="2" x2="11" y2="13"/>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-              </svg>
-            </button>
-          </form>
-        </div>
+          <!-- Synchronized Cooking Steps Stream (Apple Music Lyrics Style) -->
+          <div class="lyrics-viewport" id="lyrics-viewport">
+            <!-- Dynamically populated with .lyric-line items -->
+          </div>
 
-        <!-- Quick Phrases Bar -->
-        <div class="quick-phrases">
-          <span class="quick-label">Voice shortcuts:</span>
-          <button class="chip" data-phrase="What can I make in 15 minutes?">⚡ 15-min Meal</button>
-          <button class="chip" data-phrase="What's in my kitchen?">📦 What's in kitchen?</button>
-          <button class="chip" data-phrase="Play cooking music">🎵 Play music</button>
-          <button class="chip" data-phrase="The milk is spoiled">⚠️ Milk spoiled</button>
-          <button class="chip" data-phrase="Next step">Next step ▶</button>
-          <button class="chip" data-phrase="I stopped the stove">✓ Stove stopped</button>
-          <button class="chip" data-phrase="Save this as My Favorite Scramble">💾 Save as recipe</button>
-          <button class="chip" data-phrase="Undo that">Undo that</button>
-        </div>
-
-        <!-- Kitchen Mishap Remedies Bar -->
-        <div class="quick-phrases rescue-phrases">
-          <span class="quick-label rescue-label">🆘 Did it wrong?</span>
-          <button class="chip rescue-chip" data-phrase="I burned it, what do I do?">🔥 I burned it</button>
-          <button class="chip rescue-chip" data-phrase="It's way too salty!">🧂 Too salty</button>
-          <button class="chip rescue-chip" data-phrase="My mouth is on fire, it's too spicy!">🌶️ Too spicy</button>
-          <button class="chip rescue-chip" data-phrase="The chicken is too dry!">🥩 Meat is dry</button>
-          <button class="chip rescue-chip" data-phrase="The sauce is too watery!">💧 Too watery</button>
-          <button class="chip rescue-chip" data-phrase="The food is stuck to the pan!">🍳 Stuck to pan</button>
+          <!-- Prep Checklist Container (shown when Prep tab active) -->
+          <div class="prep-checklist-viewport hidden" id="prep-checklist-viewport">
+            <!-- Dynamically populated checklist -->
+          </div>
         </div>
       </section>
 
-      <!-- Right Column: Dual View (Inventory & Guided Cooking) -->
-      <section class="workspace-section glass-panel">
-        <!-- View Navigation Tabs -->
-        <div class="workspace-nav">
-          <button class="nav-tab active" id="tab-inventory" data-view="inventory">
-            <span>📦 Pantry & Fridge</span>
-          </button>
-          <button class="nav-tab" id="tab-cooking" data-view="cooking">
-            <span>🍳 Guided Cooking</span>
-            <span class="active-cooking-dot" id="cooking-active-dot">● Active</span>
-          </button>
-        </div>
+      <!-- ============================================================ -->
+      <!-- VIEW 2: KITCHEN STORAGE (Apple Settings / Storage Style)     -->
+      <!-- ============================================================ -->
+      <section class="stage-view storage-view hidden" id="view-storage">
+        <div class="storage-stage-container">
+          <!-- Top Apple Storage Bar -->
+          <div class="apple-storage-hero-card">
+            <div class="storage-hero-header">
+              <div>
+                <h2>Kitchen Storage & Pantry</h2>
+                <p class="storage-hero-desc">Real-time append-only inventory projected from PostgreSQL ledger</p>
+              </div>
+              <div class="storage-hero-stats">
+                <span class="total-tracked-number" id="storage-total-num">0</span>
+                <span class="total-tracked-label">Items Tracked</span>
+              </div>
+            </div>
 
-        <!-- 1. Inventory View -->
-        <div class="view-panel" id="view-inventory">
-          <div class="inventory-header">
-            <div>
-              <h2>Kitchen Inventory</h2>
-              <p class="section-subtitle">Real-time Append-Only Projection</p>
+            <!-- Visual Segmented Bar -->
+            <div class="apple-storage-bar">
+              <div class="storage-bar-seg fridge" id="bar-fridge" style="width: 33%;"></div>
+              <div class="storage-bar-seg pantry" id="bar-pantry" style="width: 33%;"></div>
+              <div class="storage-bar-seg freezer" id="bar-freezer" style="width: 34%;"></div>
             </div>
-            <button class="refresh-btn" id="refresh-inventory-btn" title="Refresh Inventory">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-              </svg>
-            </button>
-          </div>
 
-          <!-- Apple-Style Storage Breakdown Bar -->
-          <div class="storage-distribution-card">
-            <div class="storage-distribution-header">
-              <span class="storage-distribution-title">Kitchen Storage Allocation</span>
-              <span class="storage-total-count" id="storage-total-count">0 items tracked</span>
-            </div>
-            <div class="storage-progress-bar">
-              <div class="storage-bar-segment fridge" id="bar-fridge" style="width: 33.3%;"></div>
-              <div class="storage-bar-segment pantry" id="bar-pantry" style="width: 33.3%;"></div>
-              <div class="storage-bar-segment freezer" id="bar-freezer" style="width: 33.4%;"></div>
-            </div>
-            <div class="storage-legend">
-              <span class="legend-item"><span class="legend-dot fridge"></span> ❄️ Refrigerator (<span id="count-fridge">0</span>)</span>
-              <span class="legend-item"><span class="legend-dot pantry"></span> 🥫 Pantry (<span id="count-pantry">0</span>)</span>
-              <span class="legend-item"><span class="legend-dot freezer"></span> 🧊 Freezer (<span id="count-freezer">0</span>)</span>
+            <div class="storage-bar-legend">
+              <div class="legend-chip"><span class="chip-color fridge"></span> ❄️ Refrigerator (<span id="count-fridge">0</span>)</div>
+              <div class="legend-chip"><span class="chip-color pantry"></span> 🥫 Pantry (<span id="count-pantry">0</span>)</div>
+              <div class="legend-chip"><span class="chip-color freezer"></span> 🧊 Freezer (<span id="count-freezer">0</span>)</div>
+              <div class="legend-chip urgent"><span class="chip-color urgent"></span> ⚠️ Expiring (<span id="count-expiring">0</span>)</div>
             </div>
           </div>
 
-          <!-- Apple Search & Segmented Filter Bar -->
-          <div class="inventory-controls-row">
-            <div class="inventory-search-wrapper">
-              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-              <input type="text" id="inventory-search-input" placeholder="Search groceries in storage..." autocomplete="off">
-              <button type="button" class="search-clear-btn hidden" id="search-clear-btn" title="Clear search">✕</button>
+          <!-- Apple Search & Filter Pills -->
+          <div class="storage-action-row">
+            <div class="apple-search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="inventory-search-input" placeholder="Quick search groceries..." autocomplete="off">
+              <button class="clear-search-btn hidden" id="search-clear-btn">✕</button>
             </div>
-            <div class="inventory-filters segmented-control">
-              <button class="filter-tab active" data-filter="all">All (<span id="count-all">0</span>)</button>
-              <button class="filter-tab" data-filter="fridge">❄️ Fridge</button>
-              <button class="filter-tab" data-filter="pantry">🥫 Pantry</button>
-              <button class="filter-tab" data-filter="freezer">🧊 Freezer</button>
-              <button class="filter-tab urgent-tab" data-filter="expiring">⚠️ Expiring (<span id="count-expiring">0</span>)</button>
+
+            <div class="apple-segmented-filter">
+              <button class="seg-filter-btn active" data-filter="all">All Items</button>
+              <button class="seg-filter-btn" data-filter="fridge">❄️ Fridge</button>
+              <button class="seg-filter-btn" data-filter="pantry">🥫 Pantry</button>
+              <button class="seg-filter-btn" data-filter="freezer">🧊 Freezer</button>
+              <button class="seg-filter-btn urgent-tab" data-filter="expiring">⚠️ Expiring</button>
             </div>
           </div>
 
-          <!-- Inventory List -->
-          <div class="inventory-grid" id="inventory-grid">
-            <div class="empty-state">
-              <p>Loading kitchen inventory...</p>
-            </div>
-          </div>
-
-          <!-- Daily Nutrition Summary Widget with Kinetic Macro Rings -->
-          <div class="nutrition-widget">
-            <div class="nutrition-widget-header">
-              <h3>Today's Nutrition Goals</h3>
-              <span class="source-tag">USDA FoodData</span>
-            </div>
-            <div class="nutrition-dashboard">
-              <div class="macro-rings-wrapper">
-                <svg class="macro-rings-svg" viewBox="0 0 120 120">
-                  <circle class="ring-bg ring-bg-kcal" cx="60" cy="60" r="48" />
-                  <circle class="ring-fg ring-fg-kcal" id="ring-kcal" cx="60" cy="60" r="48" stroke-dasharray="301.59" stroke-dashoffset="301.59" />
-                  <circle class="ring-bg ring-bg-prot" cx="60" cy="60" r="36" />
-                  <circle class="ring-fg ring-fg-prot" id="ring-prot" cx="60" cy="60" r="36" stroke-dasharray="226.19" stroke-dashoffset="226.19" />
-                </svg>
-                <div class="ring-center-icon">🔥</div>
-              </div>
-              <div class="nutrition-metrics">
-                <div class="metric-card">
-                  <div class="metric-title-row">
-                    <span class="metric-dot kcal-dot"></span>
-                    <span class="metric-name">Calories</span>
-                  </div>
-                  <div class="metric-value-row">
-                    <span class="metric-num" id="today-kcal">0</span>
-                    <span class="metric-target">/ 2,000 kcal</span>
-                  </div>
-                </div>
-                <div class="metric-card">
-                  <div class="metric-title-row">
-                    <span class="metric-dot prot-dot"></span>
-                    <span class="metric-name">Protein</span>
-                  </div>
-                  <div class="metric-value-row">
-                    <span class="metric-num" id="today-protein">0g</span>
-                    <span class="metric-target">/ 120g target</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 2. Guided Cooking View -->
-        <div class="view-panel hidden" id="view-cooking">
-          <div class="cooking-empty" id="cooking-empty-state">
-            <div class="empty-icon">🍳</div>
-            <h3>No Active Recipe</h3>
-            <p>Ask <em>"What can I make in 15 minutes?"</em> or choose a recipe below to begin step-by-step cooking with ambient music and smart timers.</p>
-            <div class="recipe-starter-list" id="recipe-starter-list">
-              <!-- Dynamically filled with top recipes -->
-            </div>
-            <div class="custom-recipe-starter-row">
-              <button class="add-custom-recipe-btn" id="open-custom-recipe-btn">+ Add Custom Family Recipe</button>
-            </div>
-          </div>
-
-          <div class="cooking-active-container hidden" id="cooking-active-container">
-            <!-- Recipe Banner -->
-            <div class="recipe-banner">
-              <div class="recipe-banner-left">
-                <div class="recipe-pill-tags">
-                  <span class="recipe-badge" id="recipe-badge-time">⏱️ 10 min</span>
-                  <span class="recipe-badge" id="recipe-badge-servings">🍽️ 2 servings</span>
-                  <span class="recipe-badge" id="recipe-badge-kcal">🔥 ~320 kcal</span>
-                  <div class="servings-scaler-group">
-                    <span class="scaler-label">Scale:</span>
-                    <button type="button" class="scale-btn" data-scale="1">1x</button>
-                    <button type="button" class="scale-btn active" data-scale="2">2x</button>
-                    <button type="button" class="scale-btn" data-scale="4">4x</button>
-                  </div>
-                </div>
-                <h2 id="recipe-title">Spinach & Cheddar Scramble</h2>
-                <p id="recipe-desc">Fluffy scrambled eggs folded with tender baby spinach and melted cheddar.</p>
-              </div>
-              <div class="recipe-banner-actions">
-                <button class="save-active-btn" id="save-active-recipe-btn" title="Save this Recipe">⭐ Save Custom</button>
-                <button class="exit-cooking-btn" id="exit-cooking-btn" title="Stop Cooking">✕ Stop</button>
-              </div>
-            </div>
-
-            <!-- Ingredient Prep Checklist Card -->
-            <div class="prep-card">
-              <div class="prep-header">
-                <div>
-                  <h4>Ingredient Prep Checklist</h4>
-                  <p class="prep-subtitle">Say <em>"I got the spinach"</em> or tap to check off</p>
-                </div>
-                <span class="prep-counter" id="prep-counter">0 / 4 ready</span>
-              </div>
-              <div class="prep-items-list" id="prep-items-list">
-                <!-- Checkable ingredient rows rendered here -->
-              </div>
-            </div>
-
-            <!-- Active Step Card -->
-            <div class="step-card">
-              <div class="step-card-header">
-                <span class="step-badge" id="step-index-badge">STEP 1 OF 4</span>
-                <span class="step-timer-indicator" id="step-timer-indicator">⏱️ No timer needed</span>
-              </div>
-              <p class="step-text" id="step-text">Whisk eggs in a bowl with a pinch of salt.</p>
-              
-              <div class="step-tip-box" id="step-tip-box">
-                <span class="tip-bulb">💡</span>
-                <span id="step-tip-text">Whisk vigorously for 30 seconds to incorporate air.</span>
-              </div>
-
-              <!-- Smart Step Timer -->
-              <div class="step-timer-section" id="step-timer-section">
-                <div class="timer-clock-display" id="timer-clock-display">03:00</div>
-                <div class="timer-btn-row">
-                  <button class="timer-btn play" id="timer-start-btn">▶ Start Timer</button>
-                  <button class="timer-btn pause" id="timer-pause-btn">⏸ Pause</button>
-                  <button class="timer-btn reset" id="timer-reset-btn">↺ Reset</button>
-                </div>
-                <div class="timer-ducking-note">
-                  🎵 Ambience plays softly & automatically silences when timer alerts you!
-                </div>
-              </div>
-
-              <!-- Navigation bar -->
-              <div class="step-actions">
-                <button class="step-btn secondary" id="prev-step-btn">◀ Previous</button>
-                <button class="step-btn primary" id="next-step-btn">Next Step ▶</button>
-                <button class="step-btn finish" id="finish-cooking-btn">✓ Cooked & Done (Deduct Stock)</button>
-              </div>
-            </div>
+          <!-- Storage Items Grid -->
+          <div class="storage-items-grid" id="storage-items-grid">
+            <!-- Dynamically populated cards -->
           </div>
         </div>
       </section>
+
     </main>
 
-    <!-- Timer Alert Overlay Modal -->
-    <div class="timer-alert-overlay hidden" id="timer-alert-overlay">
-      <div class="timer-alert-card">
-        <div class="alert-bell-pulse">🔔</div>
-        <h3>Timer Finished!</h3>
-        <p class="alert-message" id="alert-message">Time's up! Turn off the stove now and gently stir so it doesn't overcook!</p>
-        <div class="alert-prompt">
-          <span>Say <em>"Stove is off"</em>, <em>"Done"</em>, or click below:</span>
+    <!-- Bottom Dock Floating Controls (Apple TV / Music Floating Pills) -->
+    <footer class="floating-dock-bar">
+      <!-- Voice Activity Pill (Shows active speech from Echo / Microphone without taking over the screen) -->
+      <div class="voice-activity-pill" id="voice-activity-pill">
+        <span class="audio-wave-dot"></span>
+        <span class="active-voice-phrase" id="active-voice-phrase">Synced with Amazon Echo &bull; Speak to cook</span>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="dock-actions-group">
+        <!-- Floating Chat / Voice Drawer Toggle (Like Apple Music Lyrics Icon) -->
+        <button class="dock-tool-btn" id="toggle-chat-drawer-btn" title="Open Voice / Text Assistant (Press /)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span class="tool-label">Chat</span>
+        </button>
+
+        <!-- Floating Macro Goals Drawer Toggle -->
+        <button class="dock-tool-btn" id="toggle-macro-drawer-btn" title="View Daily Nutrition Rings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <circle cx="12" cy="12" r="6"/>
+          </svg>
+          <span class="tool-label">Macros</span>
+        </button>
+
+        <!-- Recipe Discovery Menu Button -->
+        <button class="dock-tool-btn" id="toggle-recipes-drawer-btn" title="Explore Recipes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          <span class="tool-label">Recipes</span>
+        </button>
+      </div>
+    </footer>
+
+    <!-- ============================================================ -->
+    <!-- SLIDE-OVER DRAWERS (Progressive Disclosure - Clean on Demand) -->
+    <!-- ============================================================ -->
+
+    <!-- 1. Voice & Chat Slide Drawer (Toggled via [💬] or pressing `/`) -->
+    <aside class="slide-over-drawer" id="chat-slide-drawer">
+      <div class="drawer-header">
+        <div class="drawer-title-row">
+          <span class="drawer-icon">💬</span>
+          <h3>Sous-Chef Voice Companion</h3>
         </div>
-        <div class="alert-buttons">
-          <button class="alert-btn confirm" id="alert-confirm-btn">✓ Stove Stopped & Checked (Continue)</button>
-          <button class="alert-btn add-time" id="alert-add-time-btn">⏱ Need 1 More Minute</button>
+        <button class="drawer-close-btn" id="close-chat-drawer-btn">✕</button>
+      </div>
+
+      <!-- Dialogue Transcript -->
+      <div class="drawer-transcript-box" id="drawer-transcript-box">
+        <div class="transcript-entry assistant">
+          <span class="entry-author">Sous-Chef</span>
+          <p>Hi! I'm synced with your Echo Dot. You can talk to Alexa hands-free, or type questions here anytime.</p>
+        </div>
+      </div>
+
+      <!-- Text and Mic Input -->
+      <form class="drawer-input-form" id="drawer-chat-form">
+        <button type="button" class="drawer-mic-btn" id="drawer-mic-btn" title="Toggle Web Mic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+          </svg>
+        </button>
+        <input type="text" id="drawer-text-input" placeholder="Ask anything (e.g. 'what can I cook in 15 min?')" autocomplete="off">
+        <button type="submit" class="drawer-send-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
+      </form>
+
+      <!-- Quick Rescue & Voice Shortcuts -->
+      <div class="drawer-shortcuts-section">
+        <span class="shortcuts-title">Emergency Rescue:</span>
+        <div class="shortcuts-chips-row">
+          <button class="rescue-chip" data-phrase="I burned the food, help!">🔥 Burned food</button>
+          <button class="rescue-chip" data-phrase="It is too salty!">🧂 Too salty</button>
+          <button class="rescue-chip" data-phrase="Too spicy!">🌶️ Too spicy</button>
+          <button class="rescue-chip" data-phrase="The chicken is dry!">🥩 Dry meat</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 2. Apple Fitness Macro Rings Drawer -->
+    <aside class="slide-over-drawer macro-drawer" id="macro-slide-drawer">
+      <div class="drawer-header">
+        <div class="drawer-title-row">
+          <span class="drawer-icon">🎯</span>
+          <h3>Daily Nutrition Goals</h3>
+        </div>
+        <button class="drawer-close-btn" id="close-macro-drawer-btn">✕</button>
+      </div>
+
+      <div class="drawer-macro-body">
+        <div class="macro-rings-wrapper">
+          <svg class="macro-rings-svg" viewBox="0 0 140 140">
+            <circle class="ring-bg ring-bg-kcal" cx="70" cy="70" r="56" />
+            <circle class="ring-fg ring-fg-kcal" id="ring-kcal" cx="70" cy="70" r="56" stroke-dasharray="351.85" stroke-dashoffset="351.85" />
+            <circle class="ring-bg ring-bg-prot" cx="70" cy="70" r="42" />
+            <circle class="ring-fg ring-fg-prot" id="ring-prot" cx="70" cy="70" r="42" stroke-dasharray="263.89" stroke-dashoffset="263.89" />
+          </svg>
+          <div class="ring-center-icon">🔥</div>
+        </div>
+
+        <div class="macro-cards-column">
+          <div class="macro-metric-card kcal">
+            <div class="metric-top"><span class="dot kcal"></span> Calories</div>
+            <div class="metric-main"><span id="today-kcal">0</span> <small>/ 2,000 kcal</small></div>
+          </div>
+          <div class="macro-metric-card prot">
+            <div class="metric-top"><span class="dot prot"></span> Protein</div>
+            <div class="metric-main"><span id="today-protein">0g</span> <small>/ 120g target</small></div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 3. Recipe Discovery Drawer -->
+    <aside class="slide-over-drawer recipes-drawer" id="recipes-slide-drawer">
+      <div class="drawer-header">
+        <div class="drawer-title-row">
+          <span class="drawer-icon">📖</span>
+          <h3>Recipe Cookbook</h3>
+        </div>
+        <button class="drawer-close-btn" id="close-recipes-drawer-btn">✕</button>
+      </div>
+      <div class="drawer-recipes-body" id="drawer-recipes-list">
+        <!-- Dynamically rendered recipe cards -->
+      </div>
+    </aside>
+
+    <!-- Emergency Rescue Alert Modal -->
+    <div class="emergency-alert-sheet hidden" id="emergency-alert-sheet">
+      <div class="alert-sheet-card">
+        <div class="alert-sheet-header">
+          <div class="alert-icon-wrap">🔥</div>
+          <div class="alert-sheet-titles">
+            <h3 id="alert-remedy-title">Culinary Rescue Alert</h3>
+            <p id="alert-remedy-subtitle">Emergency action required</p>
+          </div>
+        </div>
+        <div class="alert-sheet-body" id="alert-remedy-body"></div>
+        <div class="alert-sheet-actions">
+          <button class="alert-btn confirm" id="alert-remedy-confirm-btn">✓ I Fixed It (Resume Cooking)</button>
         </div>
       </div>
     </div>
 
-    <!-- Custom Recipe Modal -->
-    <div class="custom-recipe-modal hidden" id="custom-recipe-modal">
-      <div class="modal-card">
-        <div class="modal-header">
-          <h3>Save Custom Family Recipe</h3>
-          <button class="modal-close-btn" id="close-recipe-modal-btn">✕</button>
-        </div>
-        <form id="custom-recipe-form">
-          <div class="form-group">
-            <label for="modal-recipe-name">Recipe Name</label>
-            <input type="text" id="modal-recipe-name" placeholder="e.g. Grandma's Secret Pasta" required>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="modal-prep-min">Prep Time (min)</label>
-              <input type="number" id="modal-prep-min" value="15" min="1" max="240">
-            </div>
-            <div class="form-group">
-              <label for="modal-servings">Servings</label>
-              <input type="number" id="modal-servings" value="2" min="1" max="20" step="0.5">
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="modal-ingredients">Ingredients (e.g. 3 eggs, 1 cup spinach, 2 oz cheddar)</label>
-            <input type="text" id="modal-ingredients" placeholder="3 eggs, 1 cup spinach, 2 oz cheddar" required>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn-cancel" id="cancel-recipe-modal-btn">Cancel</button>
-            <button type="submit" class="btn-save" id="submit-custom-recipe-btn">Save to Kitchen</button>
-          </div>
-        </form>
-      </div>
-    </div>
   </div>
 
   <script src="app.js"></script>

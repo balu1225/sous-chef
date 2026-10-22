@@ -506,6 +506,14 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
         app_file = SIMULATOR_DIR / "app.js"
         return Response(app_file.read_text(), media_type="application/javascript")
 
+    async def serve_manifest(_: Request) -> Response:
+        f = SIMULATOR_DIR / "manifest.json"
+        return Response(f.read_text(), media_type="application/manifest+json")
+
+    async def serve_sw(_: Request) -> Response:
+        f = SIMULATOR_DIR / "sw.js"
+        return Response(f.read_text(), media_type="application/javascript")
+
     async def api_inventory(_: Request) -> JSONResponse:
         if state.store is None:
             return JSONResponse({"items": []})
@@ -617,6 +625,33 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                     if state.active_cooking["step"] > 1:
                         state.active_cooking["step"] -= 1
                 return JSONResponse({"active_cooking": state.active_cooking})
+            elif action == "set_step":
+                if state.active_cooking:
+                    step_val = int(body.get("step", 1))
+                    recipe = state.active_cooking["recipe"]
+                    steps = recipe.get("steps", [])
+                    total = len(steps) or 1
+                    state.active_cooking["step"] = max(1, min(step_val, total))
+                return JSONResponse({"active_cooking": state.active_cooking})
+            elif action == "set_servings":
+                if state.active_cooking:
+                    servings_val = float(body.get("servings", 2.0))
+                    state.active_cooking["servings"] = servings_val
+                return JSONResponse({"active_cooking": state.active_cooking})
+            elif action == "finish":
+                if state.active_cooking and state.store:
+                    recipe = state.active_cooking["recipe"]
+                    servings = float(state.active_cooking.get("servings", recipe.get("servings", 2)))
+                    led = state.store.ledger(state.config.household_id)
+                    cook_res = await run_blocking(
+                        lambda: execute_cooking_deduction(led, recipe, servings, str(uuid.uuid4()), state.store, state.config.household_id),
+                        state.config.tool_timeout_s, retry_transient=False
+                    )
+                    state.last_cooked_meal = recipe
+                    state.active_cooking = None
+                    return JSONResponse({"active_cooking": None, "meal": cook_res, "spoken_message": cook_res["spoken_message"]})
+                state.active_cooking = None
+                return JSONResponse({"active_cooking": None})
             elif action == "confirm_action":
                 if state.active_cooking:
                     recipe = state.active_cooking["recipe"]
@@ -1204,6 +1239,8 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
     app = Starlette(routes=[Route("/", serve_index, methods=["GET"]),
                             Route("/style.css", serve_style, methods=["GET"]),
                             Route("/app.js", serve_app, methods=["GET"]),
+                            Route("/manifest.json", serve_manifest, methods=["GET"]),
+                            Route("/sw.js", serve_sw, methods=["GET"]),
                             Route("/api/inventory", api_inventory, methods=["GET"]),
                             Route("/api/nutrition", api_nutrition, methods=["GET"]),
                             Route("/api/recipes", api_recipes, methods=["GET", "POST"]),
