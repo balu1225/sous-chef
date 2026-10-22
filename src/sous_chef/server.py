@@ -55,6 +55,9 @@ from shelf_life import (
     generate_duplicate_batch_advisory,
 )
 
+import urllib.parse
+from polly_voice import synthesize_speech
+
 log = logging.getLogger("kitchen_agent")
 
 SERVER_NAME = "sous-chef"
@@ -69,7 +72,8 @@ INSTRUCTIONS = (
 
 PUBLIC_PATHS = frozenset({"/healthz", "/readyz", "/", "/style.css", "/app.js",
                           "/api/inventory", "/api/inventory/move", "/api/converse",
-                          "/api/nutrition", "/api/recipes", "/api/cooking", "/api/presence"})
+                          "/api/nutrition", "/api/recipes", "/api/cooking", "/api/presence",
+                          "/api/tts"})
 
 
 @dataclass
@@ -584,6 +588,24 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
             "timestamp": now
         })
 
+    async def api_tts(request: Request) -> Response:
+        text = request.query_params.get("text", "").strip()
+        if not text:
+            return JSONResponse({"error": "text_required"}, status_code=400)
+
+        # Synthesize with Amazon Polly Neural (Joanna)
+        audio_data = await anyio.to_thread.run_sync(lambda: synthesize_speech(text))
+        if audio_data:
+            return Response(
+                audio_data,
+                media_type="audio/mpeg",
+                headers={
+                    "Cache-Control": "public, max-age=86400",
+                    "Content-Disposition": "inline; filename=speech.mp3"
+                }
+            )
+        return JSONResponse({"status": "polly_fallback", "message": "use_client_tts"}, status_code=200)
+
     async def api_nutrition(_: Request) -> JSONResponse:
         if state.store is None:
             return JSONResponse({"date": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "total_kcal": 0, "total_protein_g": 0, "meals_logged": 0})
@@ -665,7 +687,13 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                     "checked_prep": [],
                     "servings": float(body.get("servings", recipe.get("servings", 2)))
                 }
-                return JSONResponse({"active_cooking": state.active_cooking})
+                step1_inst = recipe.get("steps", [{}])[0].get("instruction", "Let us begin.")
+                spoken = f"Let's make {recipe['name']}! Step 1: {step1_inst}"
+                return JSONResponse({
+                    "active_cooking": state.active_cooking,
+                    "spoken_message": spoken,
+                    "audio_url": f"/api/tts?text={urllib.parse.quote(spoken)}"
+                })
             elif action == "stop":
                 state.active_cooking = None
                 return JSONResponse({"active_cooking": None})
@@ -674,19 +702,42 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                 if state.active_cooking and item:
                     if item not in state.active_cooking["checked_prep"]:
                         state.active_cooking["checked_prep"].append(item)
-                return JSONResponse({"active_cooking": state.active_cooking})
+                spoken = f"Checked off {item}."
+                return JSONResponse({
+                    "active_cooking": state.active_cooking,
+                    "spoken_message": spoken,
+                    "audio_url": f"/api/tts?text={urllib.parse.quote(spoken)}"
+                })
             elif action == "next_step":
                 if state.active_cooking:
                     recipe = state.active_cooking["recipe"]
                     steps = recipe.get("steps", [])
                     if state.active_cooking["step"] < len(steps):
                         state.active_cooking["step"] += 1
-                return JSONResponse({"active_cooking": state.active_cooking})
+                        next_inst = steps[state.active_cooking["step"] - 1].get("instruction", "")
+                        spoken = f"Step {state.active_cooking['step']}: {next_inst}"
+                    else:
+                        spoken = f"That was the final step for {recipe['name']}! Tap 'Complete Meal' to deduct ingredients."
+                    return JSONResponse({
+                        "active_cooking": state.active_cooking,
+                        "spoken_message": spoken,
+                        "audio_url": f"/api/tts?text={urllib.parse.quote(spoken)}"
+                    })
+                return JSONResponse({"active_cooking": None})
             elif action == "prev_step":
                 if state.active_cooking:
                     if state.active_cooking["step"] > 1:
                         state.active_cooking["step"] -= 1
-                return JSONResponse({"active_cooking": state.active_cooking})
+                    recipe = state.active_cooking["recipe"]
+                    steps = recipe.get("steps", [])
+                    prev_inst = steps[state.active_cooking["step"] - 1].get("instruction", "")
+                    spoken = f"Going back to Step {state.active_cooking['step']}: {prev_inst}"
+                    return JSONResponse({
+                        "active_cooking": state.active_cooking,
+                        "spoken_message": spoken,
+                        "audio_url": f"/api/tts?text={urllib.parse.quote(spoken)}"
+                    })
+                return JSONResponse({"active_cooking": None})
             elif action == "set_step":
                 if state.active_cooking:
                     step_val = int(body.get("step", 1))
@@ -711,7 +762,13 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                     )
                     state.last_cooked_meal = recipe
                     state.active_cooking = None
-                    return JSONResponse({"active_cooking": None, "meal": cook_res, "spoken_message": cook_res["spoken_message"]})
+                    spoken = cook_res["spoken_message"]
+                    return JSONResponse({
+                        "active_cooking": None,
+                        "meal": cook_res,
+                        "spoken_message": spoken,
+                        "audio_url": f"/api/tts?text={urllib.parse.quote(spoken)}"
+                    })
                 state.active_cooking = None
                 return JSONResponse({"active_cooking": None})
             elif action == "confirm_action":
@@ -1375,6 +1432,7 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                             Route("/api/recipes", api_recipes, methods=["GET", "POST"]),
                             Route("/api/cooking", api_cooking, methods=["GET", "POST"]),
                             Route("/api/presence", api_presence, methods=["GET", "POST"]),
+                            Route("/api/tts", api_tts, methods=["GET"]),
                             Route("/api/converse", api_converse, methods=["POST"]),
                             Route("/alexa", api_converse, methods=["POST"]),
                             Route("/healthz", healthz, methods=["GET"]),

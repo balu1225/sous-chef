@@ -1,316 +1,31 @@
 // ==========================================================================
-// Sous-Chef Cinematic Apple Music "Now Playing" Web Companion
-// FastMCP 1.30.0 Streamable HTTP • Amazon Echo Live Sync • PWA Ready
+// Sous-Chef Smart Alexa+ Kitchen Assistant Companion
+// FastMCP 1.30.0 Streamable HTTP • Amazon Echo Live Sync • Amazon Polly Neural
 // ==========================================================================
 
 // --------------------------------------------------------------------------
-// 1. Web Audio API Lo-Fi Ambience & Kitchen Sound Engine
+// 1. Alexa Speech & Audio Synthesis Engine (Amazon Polly Neural + Web Fallback)
 // --------------------------------------------------------------------------
-class CookingMusicEngine {
+class AlexaVoiceEngine {
   constructor() {
-    this.ctx = null;
+    this.audioElement = document.getElementById('alexa-polly-audio');
+    this.soundwaveAnim = document.getElementById('alexa-soundwave-anim');
+    this.spokenBannerText = document.getElementById('alexa-spoken-text');
     this.isPlaying = false;
-    this.wasPlayingBeforeTimer = false;
-    this.gainNode = null;
-    this.intervalId = null;
-    this.masterVolume = 0.30;
-  }
-
-  init() {
-    if (!this.ctx) {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      this.ctx = new AudioCtx();
-      this.gainNode = this.ctx.createGain();
-      this.gainNode.gain.setValueAtTime(this.masterVolume, this.ctx.currentTime);
-      this.gainNode.connect(this.ctx.destination);
-    }
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
-    }
-  }
-
-  setVolume(val) {
-    this.masterVolume = Math.max(0, Math.min(1, val));
-    if (this.gainNode && this.ctx && this.isPlaying) {
-      this.gainNode.gain.linearRampToValueAtTime(this.masterVolume, this.ctx.currentTime + 0.1);
-    }
-  }
-
-  play() {
-    this.init();
-    if (this.isPlaying) return;
-    this.isPlaying = true;
-
-    if (this.gainNode && this.ctx) {
-      this.gainNode.gain.cancelScheduledValues(this.ctx.currentTime);
-      this.gainNode.gain.linearRampToValueAtTime(this.masterVolume, this.ctx.currentTime + 0.5);
-    }
-
-    // Warm Lo-Fi Rhodes progression (Fmaj7 -> Em7 -> Dm7 -> Cmaj7)
-    const chords = [
-      [174.61, 220.00, 261.63, 329.63],
-      [164.81, 196.00, 246.94, 293.66],
-      [146.83, 174.61, 220.00, 261.63],
-      [130.81, 164.81, 196.00, 246.94]
-    ];
-    let chordIdx = 0;
-
-    const playChord = () => {
-      if (!this.isPlaying || !this.ctx) return;
-      const notes = chords[chordIdx % chords.length];
-      chordIdx++;
-      const now = this.ctx.currentTime;
-
-      notes.forEach((freq, idx) => {
-        const osc = this.ctx.createOscillator();
-        const noteGain = this.ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
-
-        noteGain.gain.setValueAtTime(0, now + idx * 0.08);
-        noteGain.gain.linearRampToValueAtTime(0.042, now + idx * 0.08 + 0.16);
-        noteGain.gain.exponentialRampToValueAtTime(0.0001, now + 3.7);
-
-        osc.connect(noteGain);
-        noteGain.connect(this.gainNode);
-        osc.start(now + idx * 0.08);
-        osc.stop(now + 3.8);
-      });
-    };
-
-    playChord();
-    this.intervalId = setInterval(playChord, 3800);
-    this.updateUI();
-  }
-
-  stop(fadeTime = 0.4) {
-    if (!this.isPlaying) return;
-    this.isPlaying = false;
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-      this.intervalId = null;
-    }
-    if (this.gainNode && this.ctx) {
-      const now = this.ctx.currentTime;
-      this.gainNode.gain.cancelScheduledValues(now);
-      this.gainNode.gain.linearRampToValueAtTime(0.0001, now + fadeTime);
-    }
-    this.updateUI();
-  }
-
-  duck(fadeTime = 0.3) {
-    if (!this.isPlaying || !this.ctx) return;
-    const now = this.ctx.currentTime;
-    this.gainNode.gain.cancelScheduledValues(now);
-    this.gainNode.gain.linearRampToValueAtTime(0.02, now + fadeTime);
-  }
-
-  unduck(fadeTime = 0.5) {
-    if (!this.isPlaying || !this.ctx) return;
-    const now = this.ctx.currentTime;
-    this.gainNode.gain.cancelScheduledValues(now);
-    this.gainNode.gain.linearRampToValueAtTime(this.masterVolume, now + fadeTime);
-  }
-
-  playTimerChime() {
-    this.init();
-    if (!this.ctx) return;
-    const tones = [880, 1174.66, 1760];
-    const now = this.ctx.currentTime;
-    tones.forEach((freq, i) => {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, now + i * 0.18);
-      gain.gain.setValueAtTime(0, now + i * 0.18);
-      gain.gain.linearRampToValueAtTime(0.2, now + i * 0.18 + 0.04);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.18 + 1.2);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now + i * 0.18);
-      osc.stop(now + i * 0.18 + 1.25);
-    });
-  }
-
-  playCheckChime() {
-    this.init();
-    if (!this.ctx) return;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    const now = this.ctx.currentTime;
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(659.25, now);
-    osc.frequency.exponentialRampToValueAtTime(1318.51, now + 0.08);
-    gain.gain.setValueAtTime(0.08, now);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
-
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.24);
-  }
-
-  updateUI() {
-    const musicBtn = document.getElementById('music-btn');
-    if (musicBtn) {
-      if (this.isPlaying) {
-        musicBtn.classList.add('playing');
-        musicBtn.style.color = '#30d158';
-      } else {
-        musicBtn.classList.remove('playing');
-        musicBtn.style.color = 'inherit';
-      }
-    }
-  }
-}
-
-// --------------------------------------------------------------------------
-// 2. Main Sous-Chef Application Architecture
-// --------------------------------------------------------------------------
-class SousChefVoiceApp {
-  constructor() {
-    // Mode Switcher Elements
-    this.modeCookingBtn = document.getElementById('mode-cooking-btn');
-    this.modeStorageBtn = document.getElementById('mode-storage-btn');
-    this.viewNowCooking = document.getElementById('view-now-cooking');
-    this.viewStorage = document.getElementById('view-storage');
-
-    // Ambient Backdrop
-    this.ambientBackdrop = document.getElementById('ambient-backdrop');
-
-    // Hero Column (Left)
-    this.dishName = document.getElementById('dish-name');
-    this.dishSub = document.getElementById('dish-sub');
-    this.dishArtworkEmoji = document.getElementById('dish-artwork-emoji');
-    this.dishCoverArtwork = document.getElementById('dish-cover-artwork');
-    this.starRecipeBtn = document.getElementById('star-recipe-btn');
-    this.customRecipeOpenBtn = document.getElementById('custom-recipe-open-btn');
-    this.scrubberFill = document.getElementById('scrubber-fill');
-    this.scrubElapsed = document.getElementById('scrub-elapsed');
-    this.scrubRemaining = document.getElementById('scrub-remaining');
-    this.prevStepBtn = document.getElementById('prev-step-btn');
-    this.timerToggleBtn = document.getElementById('timer-toggle-btn');
-    this.nextStepBtn = document.getElementById('next-step-btn');
-    this.finishMealBtn = document.getElementById('finish-meal-btn');
-
-    // Lyrics Column (Right)
-    this.streamStatusLabel = document.getElementById('stream-status-label');
-    this.tabShowSteps = document.getElementById('tab-show-steps');
-    this.tabShowPrep = document.getElementById('tab-show-prep');
-    this.prepReadyCount = document.getElementById('prep-ready-count');
-    this.lyricsViewport = document.getElementById('lyrics-viewport');
-    this.prepChecklistViewport = document.getElementById('prep-checklist-viewport');
-
-    // Kitchen Storage View
-    this.storageTotalNum = document.getElementById('storage-total-num');
-    this.barFridge = document.getElementById('bar-fridge');
-    this.barPantry = document.getElementById('bar-pantry');
-    this.barFreezer = document.getElementById('bar-freezer');
-    this.countFridge = document.getElementById('count-fridge');
-    this.countPantry = document.getElementById('count-pantry');
-    this.countFreezer = document.getElementById('count-freezer');
-    this.countExpiring = document.getElementById('count-expiring');
-    this.inventorySearchInput = document.getElementById('inventory-search-input');
-    this.searchClearBtn = document.getElementById('search-clear-btn');
-    this.storageItemsGrid = document.getElementById('storage-items-grid');
-
-    // Floating Dock Bar & Voice Activity Pill
-    this.voiceActivityPill = document.getElementById('voice-activity-pill');
-    this.activeVoicePhrase = document.getElementById('active-voice-phrase');
-    this.toggleChatDrawerBtn = document.getElementById('toggle-chat-drawer-btn');
-    this.toggleMacroDrawerBtn = document.getElementById('toggle-macro-drawer-btn');
-    this.toggleRecipesDrawerBtn = document.getElementById('toggle-recipes-drawer-btn');
-
-    // Drawers
-    this.chatSlideDrawer = document.getElementById('chat-slide-drawer');
-    this.closeChatDrawerBtn = document.getElementById('close-chat-drawer-btn');
-    this.drawerTranscriptBox = document.getElementById('drawer-transcript-box');
-    this.drawerChatForm = document.getElementById('drawer-chat-form');
-    this.drawerTextInput = document.getElementById('drawer-text-input');
-    this.drawerMicBtn = document.getElementById('drawer-mic-btn');
-
-    this.macroSlideDrawer = document.getElementById('macro-slide-drawer');
-    this.closeMacroDrawerBtn = document.getElementById('close-macro-drawer-btn');
-    this.ringKcal = document.getElementById('ring-kcal');
-    this.ringProt = document.getElementById('ring-prot');
-    this.todayKcal = document.getElementById('today-kcal');
-    this.todayProtein = document.getElementById('today-protein');
-
-    this.recipesSlideDrawer = document.getElementById('recipes-slide-drawer');
-    this.closeRecipesDrawerBtn = document.getElementById('close-recipes-drawer-btn');
-    this.drawerRecipesList = document.getElementById('drawer-recipes-list');
-
-    // Emergency Rescue Sheet
-    this.emergencyAlertSheet = document.getElementById('emergency-alert-sheet');
-    this.alertRemedyTitle = document.getElementById('alert-remedy-title');
-    this.alertRemedySubtitle = document.getElementById('alert-remedy-subtitle');
-    this.alertRemedyBody = document.getElementById('alert-remedy-body');
-    this.alertRemedyConfirmBtn = document.getElementById('alert-remedy-confirm-btn');
-
-    // Music & Ambience Controls
-    this.musicBtn = document.getElementById('music-btn');
-    this.musicVol = document.getElementById('music-vol');
-
-    // State Variables
-    this.currentMode = 'cooking';
-    this.lyricsMode = 'steps'; // 'steps' | 'prep'
-    this.isListening = false;
-    this.isSpeaking = false;
-    this.recognition = null;
     this.selectedFemaleVoice = null;
-    this.activeCooking = null;
-    this.inventoryItems = [];
-    this.activeFilter = 'all';
-    this.searchQuery = '';
-    this.allRecipes = [];
+    this.initBrowserVoices();
 
-    // Step Timer State
-    this.stepTimerTotal = 0;
-    this.stepTimerRemaining = 0;
-    this.stepTimerElapsed = 0;
-    this.stepTimerInterval = null;
-    this.isTimerRunning = false;
-
-    // Lo-Fi Audio Engine
-    this.musicEngine = new CookingMusicEngine();
-
-    // Bootstrap
-    this.initVoices();
-    this.initSpeechRecognition();
-    this.initEventListeners();
-    this.initPWA();
-    this.startPresenceHeartbeat();
-
-    // Initial Data Fetch
-    this.fetchCookingState();
-    this.fetchInventory();
-    this.fetchNutrition();
-    this.fetchRecipes();
-
-    // Periodic Live Sync with Echo Dot / Alexa+
-    setInterval(() => {
-      this.fetchCookingState();
-      this.fetchInventory();
-      this.fetchNutrition();
-    }, 3000);
-  }
-
-  // ------------------------------------------------------------------------
-  // PWA Service Worker Registration
-  // ------------------------------------------------------------------------
-  initPWA() {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(err => {
-        console.warn('PWA ServiceWorker registration failed:', err);
+    if (this.audioElement) {
+      this.audioElement.addEventListener('ended', () => this.handleSpeechEnd());
+      this.audioElement.addEventListener('pause', () => this.handleSpeechEnd());
+      this.audioElement.addEventListener('error', (e) => {
+        console.warn('Polly audio playback error, falling back:', e);
+        this.handleSpeechEnd();
       });
     }
   }
 
-  // ------------------------------------------------------------------------
-  // Natural Voice Selection
-  // ------------------------------------------------------------------------
-  initVoices() {
+  initBrowserVoices() {
     if (!('speechSynthesis' in window)) return;
     const findVoice = () => {
       const voices = window.speechSynthesis.getVoices();
@@ -331,8 +46,305 @@ class SousChefVoiceApp {
     window.speechSynthesis.onvoiceschanged = findVoice;
   }
 
+  setBannerText(text) {
+    if (this.spokenBannerText && text) {
+      this.spokenBannerText.textContent = `"${text}"`;
+    }
+  }
+
+  async speak(text, audioUrl = null, onComplete = null) {
+    if (!text || !text.trim()) {
+      if (onComplete) onComplete();
+      return;
+    }
+
+    const cleanText = text.trim();
+    this.setBannerText(cleanText);
+
+    // Update voice activity pill in dock
+    const phrasePill = document.getElementById('active-voice-phrase');
+    if (phrasePill) {
+      phrasePill.textContent = `Alexa: "${cleanText.slice(0, 55)}${cleanText.length > 55 ? '...' : ''}"`;
+    }
+    const voicePill = document.getElementById('voice-activity-pill');
+    if (voicePill) voicePill.classList.add('listening');
+
+    // Trigger visual soundwave
+    this.startSoundwave();
+
+    // 1. Try Amazon Polly Neural audio playback first
+    const pollyUrl = audioUrl || `/api/tts?text=${encodeURIComponent(cleanText)}`;
+    if (this.audioElement) {
+      try {
+        this.audioElement.src = pollyUrl;
+        const playPromise = this.audioElement.play();
+        if (playPromise !== undefined) {
+          await playPromise;
+          this.isPlaying = true;
+          this.audioElement.onended = () => {
+            this.handleSpeechEnd();
+            if (onComplete) onComplete();
+          };
+          return;
+        }
+      } catch (err) {
+        console.warn('Polly audio stream not playable, falling back to Web Speech:', err);
+      }
+    }
+
+    // 2. Client Web Speech Synthesis Fallback
+    this.speakWithWebSpeech(cleanText, onComplete);
+  }
+
+  speakWithWebSpeech(text, onComplete = null) {
+    if (!('speechSynthesis' in window)) {
+      this.handleSpeechEnd();
+      if (onComplete) onComplete();
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    if (this.selectedFemaleVoice) {
+      utterance.voice = this.selectedFemaleVoice;
+    }
+    utterance.rate = 1.02;
+    utterance.pitch = 1.0;
+
+    const cleanup = () => {
+      this.handleSpeechEnd();
+      if (onComplete) onComplete();
+    };
+
+    utterance.onend = cleanup;
+    utterance.onerror = cleanup;
+    window.speechSynthesis.speak(utterance);
+    this.isPlaying = true;
+  }
+
+  startSoundwave() {
+    if (this.soundwaveAnim) {
+      this.soundwaveAnim.classList.add('active');
+    }
+  }
+
+  handleSpeechEnd() {
+    this.isPlaying = false;
+    if (this.soundwaveAnim) {
+      this.soundwaveAnim.classList.remove('active');
+    }
+    const voicePill = document.getElementById('voice-activity-pill');
+    if (voicePill) voicePill.classList.remove('listening');
+    const phrasePill = document.getElementById('active-voice-phrase');
+    if (phrasePill) {
+      phrasePill.innerHTML = 'Synced with Amazon Echo &bull; Speak or tap to cook';
+    }
+  }
+
+  playTimerDing() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const tones = [880, 1174.66, 1760];
+    const now = ctx.currentTime;
+    tones.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + i * 0.16);
+      gain.gain.setValueAtTime(0, now + i * 0.16);
+      gain.gain.linearRampToValueAtTime(0.25, now + i * 0.16 + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.16 + 1.2);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + i * 0.16);
+      osc.stop(now + i * 0.16 + 1.25);
+    });
+  }
+
+  playTapChime() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const now = ctx.currentTime;
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(659.25, now);
+    osc.frequency.exponentialRampToValueAtTime(1318.51, now + 0.08);
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.22);
+  }
+}
+
+// --------------------------------------------------------------------------
+// 2. Main SousChefVoiceApp Architecture
+// --------------------------------------------------------------------------
+class SousChefVoiceApp {
+  constructor() {
+    // Mode Switcher Elements (3 Modes)
+    this.modeCookingBtn = document.getElementById('mode-cooking-btn');
+    this.modeCookbookBtn = document.getElementById('mode-cookbook-btn');
+    this.modeStorageBtn = document.getElementById('mode-storage-btn');
+    this.viewNowCooking = document.getElementById('view-now-cooking');
+    this.viewCookbook = document.getElementById('view-cookbook');
+    this.viewStorage = document.getElementById('view-storage');
+
+    // Ambient Aura
+    this.ambientBackdrop = document.getElementById('ambient-backdrop');
+
+    // View 1: Active Cooking Hero
+    this.dishName = document.getElementById('dish-name');
+    this.dishSub = document.getElementById('dish-sub');
+    this.dishArtworkEmoji = document.getElementById('dish-artwork-emoji');
+    this.dishCoverArtwork = document.getElementById('dish-cover-artwork');
+    this.recipePhaseFill = document.getElementById('recipe-phase-fill');
+    this.phaseStepLabel = document.getElementById('phase-step-label');
+    this.phaseTimerBadge = document.getElementById('phase-timer-badge');
+    this.timerCountdownDisplay = document.getElementById('timer-countdown-display');
+    this.prevStepBtn = document.getElementById('prev-step-btn');
+    this.timerToggleBtn = document.getElementById('timer-toggle-btn');
+    this.timerBtnText = document.getElementById('timer-btn-text');
+    this.nextStepBtn = document.getElementById('next-step-btn');
+    this.finishMealBtn = document.getElementById('finish-meal-btn');
+
+    // View 1: Dialogue & Steps Stream
+    this.alexaSpokenBanner = document.getElementById('alexa-spoken-banner');
+    this.alexaSpokenText = document.getElementById('alexa-spoken-text');
+    this.streamStatusLabel = document.getElementById('stream-status-label');
+    this.tabShowSteps = document.getElementById('tab-show-steps');
+    this.tabShowPrep = document.getElementById('tab-show-prep');
+    this.prepReadyCount = document.getElementById('prep-ready-count');
+    this.lyricsViewport = document.getElementById('lyrics-viewport');
+    this.prepChecklistViewport = document.getElementById('prep-checklist-viewport');
+
+    // View 2: Cookbook & Share
+    this.cookbookRecipesGrid = document.getElementById('cookbook-recipes-grid');
+    this.customRecipeOpenBtn = document.getElementById('custom-recipe-open-btn');
+
+    // View 3: Pantry Freshness Health Gauge
+    this.freshnessScoreVal = document.getElementById('freshness-score-val');
+    this.barSafe = document.getElementById('bar-safe');
+    this.barWarn = document.getElementById('bar-warn');
+    this.barDanger = document.getElementById('bar-danger');
+    this.countSafe = document.getElementById('count-safe');
+    this.countWarn = document.getElementById('count-warn');
+    this.countDanger = document.getElementById('count-danger');
+    this.inventorySearchInput = document.getElementById('inventory-search-input');
+    this.searchClearBtn = document.getElementById('search-clear-btn');
+    this.storageItemsGrid = document.getElementById('storage-items-grid');
+
+    // Bottom Dock: Integrated Voice & Input
+    this.voiceActivityPill = document.getElementById('voice-activity-pill');
+    this.activeVoicePhrase = document.getElementById('active-voice-phrase');
+    this.screenMicBtn = document.getElementById('screen-mic-btn');
+    this.screenTextInput = document.getElementById('screen-text-input');
+    this.screenAskBtn = document.getElementById('screen-ask-btn');
+    this.toggleMacroDrawerBtn = document.getElementById('toggle-macro-drawer-btn');
+
+    // Modals & Drawers
+    this.macroSlideDrawer = document.getElementById('macro-slide-drawer');
+    this.closeMacroDrawerBtn = document.getElementById('close-macro-drawer-btn');
+    this.ringCalories = document.getElementById('ring-calories');
+    this.ringProtein = document.getElementById('ring-protein');
+    this.ringCalCount = document.getElementById('ring-cal-count');
+    this.macroCaloriesVal = document.getElementById('macro-calories-val');
+    this.macroProteinVal = document.getElementById('macro-protein-val');
+
+    this.customRecipeModal = document.getElementById('custom-recipe-modal');
+    this.modalBackdrop = document.getElementById('modal-backdrop');
+    this.modalCloseBtn = document.getElementById('modal-close-btn');
+    this.btnCancelModal = document.getElementById('btn-cancel-modal');
+    this.customRecipeForm = document.getElementById('custom-recipe-form');
+
+    this.emergencyAlertSheet = document.getElementById('emergency-alert-sheet');
+    this.alertRemedyTitle = document.getElementById('alert-remedy-title');
+    this.alertRemedySubtitle = document.getElementById('alert-remedy-subtitle');
+    this.alertRemedyBody = document.getElementById('alert-remedy-body');
+    this.alertRemedyConfirmBtn = document.getElementById('alert-remedy-confirm-btn');
+
+    // State Variables
+    this.currentMode = 'cooking'; // 'cooking' | 'cookbook' | 'storage'
+    this.activeCooking = null;
+    this.inventoryItems = [];
+    this.allRecipes = [];
+    this.activeFilter = 'all';
+    this.searchQuery = '';
+    this.isListening = false;
+    this.recognition = null;
+
+    // Timer State
+    this.stepTimerTotal = 0;
+    this.stepTimerRemaining = 0;
+    this.stepTimerInterval = null;
+    this.isTimerRunning = false;
+
+    // Alexa Voice Engine
+    this.voiceEngine = new AlexaVoiceEngine();
+
+    // Bootstrap
+    this.initSpeechRecognition();
+    this.initEventListeners();
+    this.initPWA();
+    this.startPresenceHeartbeat();
+
+    // Initial Fetch
+    this.fetchCookingState();
+    this.fetchInventory();
+    this.fetchNutrition();
+    this.fetchRecipes();
+
+    // Live Echo Sync Heartbeat
+    setInterval(() => {
+      this.fetchCookingState();
+      this.fetchInventory();
+      this.fetchNutrition();
+    }, 3000);
+  }
+
   // ------------------------------------------------------------------------
-  // Web Speech API
+  // PWA Service Worker
+  // ------------------------------------------------------------------------
+  initPWA() {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(err => {
+        console.warn('PWA registration:', err);
+      });
+    }
+  }
+
+  // ------------------------------------------------------------------------
+  // Mode Switcher (Cooking | Cookbook | Storage)
+  // ------------------------------------------------------------------------
+  switchMode(mode) {
+    this.currentMode = mode;
+    const modes = [
+      { id: 'cooking', btn: this.modeCookingBtn, view: this.viewNowCooking },
+      { id: 'cookbook', btn: this.modeCookbookBtn, view: this.viewCookbook },
+      { id: 'storage', btn: this.modeStorageBtn, view: this.viewStorage }
+    ];
+
+    modes.forEach(m => {
+      if (m.id === mode) {
+        m.btn?.classList.add('active');
+        m.view?.classList.remove('hidden');
+        m.view?.classList.add('active');
+      } else {
+        m.btn?.classList.remove('active');
+        m.view?.classList.add('hidden');
+        m.view?.classList.remove('active');
+      }
+    });
+  }
+
+  // ------------------------------------------------------------------------
+  // Web Speech Recognition
   // ------------------------------------------------------------------------
   initSpeechRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -345,9 +357,8 @@ class SousChefVoiceApp {
       this.recognition.onstart = () => {
         this.isListening = true;
         this.voiceActivityPill.classList.add('listening');
-        this.drawerMicBtn.classList.add('active');
+        this.screenMicBtn.classList.add('active');
         this.activeVoicePhrase.textContent = 'Listening to your kitchen command...';
-        this.musicEngine.duck(0.2);
       };
 
       this.recognition.onresult = (event) => {
@@ -369,8 +380,8 @@ class SousChefVoiceApp {
 
   toggleListening() {
     if (!this.recognition) {
-      this.openChatDrawer();
-      this.appendTranscript('assistant', 'Microphone not supported on this device. Type your kitchen request here!');
+      this.screenTextInput.focus();
+      this.screenTextInput.placeholder = "Microphone unavailable. Type here...";
       return;
     }
     if (this.isListening) {
@@ -387,65 +398,20 @@ class SousChefVoiceApp {
   stopListening() {
     this.isListening = false;
     this.voiceActivityPill.classList.remove('listening');
-    this.drawerMicBtn.classList.remove('active');
-    this.musicEngine.unduck(0.3);
+    this.screenMicBtn.classList.remove('active');
     setTimeout(() => {
-      if (!this.isSpeaking) {
-        this.activeVoicePhrase.innerHTML = 'Synced with Amazon Echo &bull; Speak to cook';
+      if (!this.voiceEngine.isPlaying) {
+        this.activeVoicePhrase.innerHTML = 'Synced with Amazon Echo &bull; Speak or tap to cook';
       }
     }, 2500);
   }
 
-  speak(text, onComplete = null) {
-    if (!('speechSynthesis' in window)) {
-      if (onComplete) onComplete();
-      return;
-    }
-    window.speechSynthesis.cancel();
-
-    this.isSpeaking = true;
-    this.voiceActivityPill.classList.add('listening');
-    this.activeVoicePhrase.textContent = `Sous-Chef: "${text.slice(0, 60)}${text.length > 60 ? '...' : ''}"`;
-    this.musicEngine.duck(0.2);
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    if (this.selectedFemaleVoice) {
-      utterance.voice = this.selectedFemaleVoice;
-    }
-    utterance.rate = 1.04;
-    utterance.pitch = 1.02;
-
-    const cleanup = () => {
-      this.isSpeaking = false;
-      this.voiceActivityPill.classList.remove('listening');
-      this.musicEngine.unduck(0.4);
-      this.activeVoicePhrase.innerHTML = 'Synced with Amazon Echo &bull; Speak to cook';
-      if (onComplete) onComplete();
-    };
-
-    utterance.onend = cleanup;
-    utterance.onerror = cleanup;
-    window.speechSynthesis.speak(utterance);
-  }
-
-  appendTranscript(role, text) {
-    const entry = document.createElement('div');
-    entry.className = `transcript-entry ${role}`;
-    entry.innerHTML = `
-      <span class="entry-author">${role === 'user' ? 'You' : 'Sous-Chef'}</span>
-      <p>${escapeHtml(text)}</p>
-    `;
-    this.drawerTranscriptBox.appendChild(entry);
-    this.drawerTranscriptBox.scrollTop = this.drawerTranscriptBox.scrollHeight;
-  }
-
   // ------------------------------------------------------------------------
-  // Conversational API Dispatcher
+  // Multimodal Conversational Dispatcher
   // ------------------------------------------------------------------------
   async handleUserUtterance(text) {
     if (!text || !text.trim()) return;
     const utterance = text.trim();
-    this.appendTranscript('user', utterance);
 
     try {
       const response = await fetch('/api/converse', {
@@ -461,11 +427,7 @@ class SousChefVoiceApp {
       const data = await response.json();
       const reply = data.spoken_message || data.message || "I've updated your kitchen.";
 
-      // Music commands
-      if (data.music_command === 'play') this.musicEngine.play();
-      else if (data.music_command === 'stop') this.musicEngine.stop();
-
-      // Timer commands
+      // Step Timer Commands
       if (data.timer_command === 'start') this.startStepTimer();
       else if (data.timer_command === 'stop') this.pauseStepTimer();
 
@@ -476,31 +438,30 @@ class SousChefVoiceApp {
         this.switchMode('cooking');
       }
 
-      // Culinary rescue remedy
+      // Emergency rescue remedy
       if (data.remedy) {
         this.showEmergencyRescue(data.remedy);
-      } else {
-        this.appendTranscript('assistant', reply);
       }
 
-      this.speak(reply);
+      // Speak with authentic Amazon Polly voice
+      const audioUrl = data.audio_url || `/api/tts?text=${encodeURIComponent(reply)}`;
+      this.voiceEngine.speak(reply, audioUrl);
 
-      // Refresh data
+      // Refresh inventory & nutrition
       await this.fetchInventory();
       await this.fetchNutrition();
 
     } catch (err) {
       console.error(err);
       const fallback = "Sorry, I had trouble reaching the kitchen server.";
-      this.appendTranscript('assistant', fallback);
-      this.speak(fallback);
+      this.voiceEngine.speak(fallback);
     }
   }
 
   showEmergencyRescue(remedy) {
     this.alertRemedyTitle.textContent = `Rescue: ${remedy.category || 'Culinary Fix'}`;
     this.alertRemedySubtitle.textContent = remedy.quip || "Stay calm, we can fix this!";
-    
+
     const stepsHtml = (remedy.remedy_steps || [])
       .map((s, i) => `<p style="margin: 6px 0;"><strong>${i + 1}.</strong> ${escapeHtml(s)}</p>`)
       .join('');
@@ -511,47 +472,39 @@ class SousChefVoiceApp {
     `;
 
     this.emergencyAlertSheet.classList.remove('hidden');
-    this.appendTranscript('assistant', `Culinary Rescue for ${remedy.category}: ${remedy.quip}`);
   }
 
   // ------------------------------------------------------------------------
-  // View Switcher (Cooking <-> Storage)
+  // Echo Presence Heartbeat
   // ------------------------------------------------------------------------
-  switchMode(mode) {
-    this.currentMode = mode;
-    if (mode === 'cooking') {
-      this.modeCookingBtn.classList.add('active');
-      this.modeStorageBtn.classList.remove('active');
-      this.viewNowCooking.classList.remove('hidden');
-      this.viewStorage.classList.add('hidden');
-    } else {
-      this.modeStorageBtn.classList.add('active');
-      this.modeCookingBtn.classList.remove('active');
-      this.viewStorage.classList.remove('hidden');
-      this.viewNowCooking.classList.add('hidden');
-    }
+  startPresenceHeartbeat() {
+    const sendPresence = (status) => {
+      try {
+        fetch('/api/presence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: status || 'active', client: 'web_screen' })
+        }).catch(() => {});
+      } catch (e) {}
+    };
+
+    sendPresence('active');
+    setInterval(() => sendPresence('active'), 8000);
+
+    document.addEventListener('visibilitychange', () => {
+      sendPresence(document.visibilityState === 'visible' ? 'active' : 'inactive');
+    });
+
+    window.addEventListener('beforeunload', () => {
+      try {
+        navigator.sendBeacon('/api/presence', JSON.stringify({ status: 'closed', client: 'web_screen' }));
+      } catch (e) {}
+    });
   }
 
   // ------------------------------------------------------------------------
-  // Guided Cooking Station & Apple Music Synchronized Lyrics
+  // Dynamic Dish Palette (Harmonious Theme Generation)
   // ------------------------------------------------------------------------
-  async fetchCookingState() {
-    try {
-      const res = await fetch('/api/cooking');
-      if (res.ok) {
-        const data = await res.json();
-        const incomingStr = JSON.stringify(data.active_cooking || null);
-        const currentStr = JSON.stringify(this.activeCooking || null);
-        if (incomingStr !== currentStr) {
-          this.activeCooking = data.active_cooking;
-          this.renderCookingStage();
-        }
-      }
-    } catch (err) {
-      console.warn('Could not fetch cooking state:', err);
-    }
-  }
-
   applyDishPalette(dishName, ingredients = []) {
     const ingText = Array.isArray(ingredients)
       ? ingredients.map(i => (typeof i === 'string' ? i : (i.item || i.name || ''))).join(' ')
@@ -568,7 +521,6 @@ class SousChefVoiceApp {
     };
 
     if (/salad|greens|kale|spinach|pesto|herb|avocado|cucumber|bowl/.test(text)) {
-      // Emerald / Mint
       palette = {
         hue: 158,
         primary: '#10b981',
@@ -578,7 +530,6 @@ class SousChefVoiceApp {
         accentBg: 'rgba(16, 185, 129, 0.12)'
       };
     } else if (/pasta|spaghetti|marinara|tomato|pizza|lasagna|bolognese/.test(text)) {
-      // Roasted Terracotta
       palette = {
         hue: 347,
         primary: '#e11d48',
@@ -588,7 +539,6 @@ class SousChefVoiceApp {
         accentBg: 'rgba(225, 29, 72, 0.12)'
       };
     } else if (/curry|spicy|chili|taco|fajita|stir fry|pepper|masala|roast/.test(text)) {
-      // Fiery Smoked Chili
       palette = {
         hue: 20,
         primary: '#ea580c',
@@ -598,7 +548,6 @@ class SousChefVoiceApp {
         accentBg: 'rgba(234, 88, 12, 0.12)'
       };
     } else if (/salmon|fish|tuna|shrimp|seafood|cod/.test(text)) {
-      // Pacific Azure
       palette = {
         hue: 189,
         primary: '#06b6d4',
@@ -608,7 +557,6 @@ class SousChefVoiceApp {
         accentBg: 'rgba(6, 182, 212, 0.12)'
       };
     } else if (/berry|smoothie|acai|oat|dessert|cake|cookie|pancake/.test(text)) {
-      // Blackberry Plum / Violet
       palette = {
         hue: 260,
         primary: '#8b5cf6',
@@ -628,52 +576,47 @@ class SousChefVoiceApp {
     root.style.setProperty('--dish-accent-bg', palette.accentBg);
   }
 
-  startPresenceHeartbeat() {
-    const sendPresence = (status) => {
-      try {
-        fetch('/api/presence', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: status || 'active', client: 'web_screen' })
-        }).catch(() => {});
-      } catch (e) {}
-    };
-
-    // Ping immediately
-    sendPresence('active');
-
-    // Ping every 8 seconds
-    setInterval(() => sendPresence('active'), 8000);
-
-    // Track tab visibility
-    document.addEventListener('visibilitychange', () => {
-      sendPresence(document.visibilityState === 'visible' ? 'active' : 'inactive');
-    });
-
-    // Notify closed on page unload
-    window.addEventListener('beforeunload', () => {
-      try {
-        navigator.sendBeacon('/api/presence', JSON.stringify({ status: 'closed', client: 'web_screen' }));
-      } catch (e) {}
-    });
+  // ------------------------------------------------------------------------
+  // Guided Cooking Station
+  // ------------------------------------------------------------------------
+  async fetchCookingState() {
+    try {
+      const res = await fetch('/api/cooking');
+      if (res.ok) {
+        const data = await res.json();
+        const incomingStr = JSON.stringify(data.active_cooking || null);
+        const currentStr = JSON.stringify(this.activeCooking || null);
+        if (incomingStr !== currentStr) {
+          this.activeCooking = data.active_cooking;
+          this.renderCookingStage();
+        }
+      }
+    } catch (err) {
+      console.warn('Could not fetch cooking state:', err);
+    }
   }
 
   renderCookingStage() {
     if (!this.activeCooking || !this.activeCooking.recipe) {
-      // Default placeholder view
+      // Default idle state
       this.applyDishPalette("Spinach & Cheddar Scramble", ["eggs", "spinach", "cheddar"]);
       this.dishName.textContent = "Spinach & Cheddar Scramble";
       this.dishSub.textContent = "10 min · 2 servings · ~320 kcal";
       this.dishArtworkEmoji.textContent = "🍳";
       this.streamStatusLabel.textContent = "READY TO COOK";
+      this.phaseStepLabel.textContent = "Ready to Cook";
+      this.recipePhaseFill.style.width = "0%";
+      this.phaseTimerBadge.classList.add('hidden');
+      this.timerToggleBtn.classList.add('hidden');
+      this.finishMealBtn.classList.add('hidden');
+
       this.lyricsViewport.innerHTML = `
         <div class="lyric-line active" data-step-index="0">
           <div class="lyric-badge">Welcome</div>
-          <div class="lyric-text">Say "Alexa, ask Sous-Chef what can I cook" or pick a recipe below to begin!</div>
+          <div class="lyric-text">Say "Alexa, ask Sous-Chef what can I cook" or pick a recipe from the Cookbook tab to begin!</div>
         </div>
       `;
       this.resetStepTimer();
-      if (this.finishMealBtn) this.finishMealBtn.classList.add('hidden');
       return;
     }
 
@@ -685,7 +628,7 @@ class SousChefVoiceApp {
     const activeStepIdx = Math.max(1, Math.min(step || 1, totalSteps));
     const activeStepObj = steps[activeStepIdx - 1] || {};
 
-    // Apply dynamic culinary palette
+    // Apply Palette
     this.applyDishPalette(recipe.name, recipe.ingredients || []);
 
     // 1. Hero Left Column
@@ -693,16 +636,22 @@ class SousChefVoiceApp {
     this.dishSub.textContent = `${recipe.prep_minutes || 15} min · ${currentServings} servings · ~${Math.round((recipe.kcal_per_serving || 320) * multiplier)} kcal`;
     this.dishArtworkEmoji.textContent = this.getItemEmoji(recipe.name);
 
-    // Toggle finish button visibility only on final step
-    if (this.finishMealBtn) {
-      if (activeStepIdx === totalSteps) {
-        this.finishMealBtn.classList.remove('hidden');
-      } else {
-        this.finishMealBtn.classList.add('hidden');
-      }
+    // Update Progress Phase Bar
+    const progressPct = Math.round((activeStepIdx / totalSteps) * 100);
+    this.recipePhaseFill.style.width = `${progressPct}%`;
+    const stepType = activeStepIdx === 1 ? 'Prep' : (activeStepIdx === totalSteps ? 'Final Step' : 'Cooking');
+    this.phaseStepLabel.textContent = `Step ${activeStepIdx} of ${totalSteps} · ${stepType}`;
+
+    // Finish Meal Button
+    if (activeStepIdx === totalSteps) {
+      this.finishMealBtn.classList.remove('hidden');
+      this.nextStepBtn.classList.add('hidden');
+    } else {
+      this.finishMealBtn.classList.add('hidden');
+      this.nextStepBtn.classList.remove('hidden');
     }
 
-    // 2. Lyrics Viewport (Apple Music Synchronized Stream)
+    // 2. Synchronized Steps Stream
     this.streamStatusLabel.textContent = `STEP ${activeStepIdx} OF ${totalSteps}`;
     this.lyricsViewport.innerHTML = '';
 
@@ -715,11 +664,11 @@ class SousChefVoiceApp {
       line.className = `lyric-line ${isCurrent ? 'active' : (isPast ? 'past' : 'future')}`;
       line.dataset.stepIndex = idx;
 
-      const timerTag = st.timer_seconds && st.timer_seconds > 0 
-        ? `<div class="lyric-timer-tag">⏱️ ${Math.round(st.timer_seconds / 60)} min</div>` 
+      const timerTag = st.timer_seconds && st.timer_seconds > 0
+        ? `<div class="lyric-timer-tag">⏱️ ${Math.round(st.timer_seconds / 60)} min</div>`
         : '';
-      const tipBox = st.tip 
-        ? `<div class="lyric-tip">💡 ${escapeHtml(st.tip)}</div>` 
+      const tipBox = st.tip
+        ? `<div class="lyric-tip">💡 ${escapeHtml(st.tip)}</div>`
         : '';
 
       line.innerHTML = `
@@ -729,7 +678,7 @@ class SousChefVoiceApp {
         ${timerTag}
       `;
 
-      // Clicking any lyric line jumps directly to that step!
+      // Touch-to-Voice: Tapping jumps step & triggers Alexa voice explanation!
       line.addEventListener('click', () => {
         this.setCookingStep(stepNum);
       });
@@ -737,7 +686,7 @@ class SousChefVoiceApp {
       this.lyricsViewport.appendChild(line);
     });
 
-    // Auto-scroll the active lyric line to center of view
+    // Auto-scroll active step to center
     requestAnimationFrame(() => {
       const activeElement = this.lyricsViewport.querySelector('.lyric-line.active');
       if (activeElement) {
@@ -764,13 +713,20 @@ class SousChefVoiceApp {
       `;
 
       row.addEventListener('click', async () => {
-        this.musicEngine.playCheckChime();
-        await fetch('/api/cooking', {
+        this.voiceEngine.playTapChime();
+        const res = await fetch('/api/cooking', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'check_prep', item: ing.item })
         });
-        await this.fetchCookingState();
+        if (res.ok) {
+          const data = await res.json();
+          this.activeCooking = data.active_cooking;
+          if (data.spoken_message) {
+            this.voiceEngine.speak(data.spoken_message, data.audio_url);
+          }
+          this.renderCookingStage();
+        }
       });
 
       this.prepChecklistViewport.appendChild(row);
@@ -780,23 +736,24 @@ class SousChefVoiceApp {
 
     // 4. Timer Setup for current step
     if (activeStepObj.timer_seconds && activeStepObj.timer_seconds > 0) {
+      this.phaseTimerBadge.classList.remove('hidden');
+      this.timerToggleBtn.classList.remove('hidden');
       if (this.stepTimerTotal !== activeStepObj.timer_seconds) {
         this.stepTimerTotal = activeStepObj.timer_seconds;
         this.stepTimerRemaining = activeStepObj.timer_seconds;
-        this.stepTimerElapsed = 0;
-        this.updateScrubberDisplay();
+        this.updateTimerDisplay();
       }
     } else {
+      this.phaseTimerBadge.classList.add('hidden');
+      this.timerToggleBtn.classList.add('hidden');
       this.stepTimerTotal = 0;
       this.stepTimerRemaining = 0;
-      this.stepTimerElapsed = 0;
       this.pauseStepTimer();
-      this.updateScrubberDisplay();
     }
   }
 
   async setCookingStep(stepNum) {
-    this.musicEngine.playCheckChime();
+    this.voiceEngine.playTapChime();
     this.pauseStepTimer();
     try {
       const res = await fetch('/api/cooking', {
@@ -808,6 +765,10 @@ class SousChefVoiceApp {
         const data = await res.json();
         this.activeCooking = data.active_cooking;
         this.renderCookingStage();
+        const steps = this.activeCooking?.recipe?.steps || [];
+        const stepInst = steps[stepNum - 1]?.instruction || '';
+        const msg = `Step ${stepNum}: ${stepInst}`;
+        this.voiceEngine.speak(msg);
       }
     } catch (err) {
       console.error(err);
@@ -815,23 +776,17 @@ class SousChefVoiceApp {
   }
 
   // ------------------------------------------------------------------------
-  // Apple-Style Progress Scrubber & Timer
+  // Tactical Kitchen Step Timer
   // ------------------------------------------------------------------------
   startStepTimer() {
     if (this.isTimerRunning) return;
     this.isTimerRunning = true;
-    this.updateTransportPlayState(true);
-
-    this.musicEngine.wasPlayingBeforeTimer = this.musicEngine.isPlaying;
-    if (!this.musicEngine.isPlaying) {
-      this.musicEngine.play();
-    }
+    if (this.timerBtnText) this.timerBtnText.textContent = 'Pause Timer';
 
     this.stepTimerInterval = setInterval(() => {
       if (this.stepTimerRemaining > 0) {
         this.stepTimerRemaining--;
-        this.stepTimerElapsed++;
-        this.updateScrubberDisplay();
+        this.updateTimerDisplay();
       } else {
         this.handleTimerFinished();
       }
@@ -840,7 +795,7 @@ class SousChefVoiceApp {
 
   pauseStepTimer() {
     this.isTimerRunning = false;
-    this.updateTransportPlayState(false);
+    if (this.timerBtnText) this.timerBtnText.textContent = 'Start Timer';
     if (this.stepTimerInterval) {
       clearInterval(this.stepTimerInterval);
       this.stepTimerInterval = null;
@@ -850,41 +805,23 @@ class SousChefVoiceApp {
   resetStepTimer() {
     this.pauseStepTimer();
     this.stepTimerRemaining = this.stepTimerTotal;
-    this.stepTimerElapsed = 0;
-    this.updateScrubberDisplay();
+    this.updateTimerDisplay();
   }
 
-  updateTransportPlayState(isPlaying) {
-    const playIcon = this.timerToggleBtn.querySelector('.play-icon');
-    const pauseIcon = this.timerToggleBtn.querySelector('.pause-icon');
-    if (isPlaying) {
-      playIcon.classList.add('hidden');
-      pauseIcon.classList.remove('hidden');
-    } else {
-      playIcon.classList.remove('hidden');
-      pauseIcon.classList.add('hidden');
+  updateTimerDisplay() {
+    const mins = Math.floor(this.stepTimerRemaining / 60);
+    const secs = this.stepTimerRemaining % 60;
+    const formatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    if (this.timerCountdownDisplay) {
+      this.timerCountdownDisplay.textContent = formatted;
     }
-  }
-
-  updateScrubberDisplay() {
-    const elapsedMins = Math.floor(this.stepTimerElapsed / 60);
-    const elapsedSecs = this.stepTimerElapsed % 60;
-    this.scrubElapsed.textContent = `${String(elapsedMins).padStart(2, '0')}:${String(elapsedSecs).padStart(2, '0')}`;
-
-    const remMins = Math.floor(this.stepTimerRemaining / 60);
-    const remSecs = this.stepTimerRemaining % 60;
-    this.scrubRemaining.textContent = `-${String(remMins).padStart(2, '0')}:${String(remSecs).padStart(2, '0')}`;
-
-    const pct = this.stepTimerTotal > 0 ? (this.stepTimerElapsed / this.stepTimerTotal) * 100 : 0;
-    this.scrubberFill.style.width = `${Math.min(100, Math.max(0, pct))}%`;
   }
 
   handleTimerFinished() {
     this.pauseStepTimer();
-    this.musicEngine.stop(0.2);
-    this.musicEngine.playTimerChime();
+    this.voiceEngine.playTimerDing();
 
-    let alertMsg = "Timer's up! Turn down the heat and check your food.";
+    let alertMsg = "Timer completed! Turn down the heat and check your dish.";
     if (this.activeCooking && this.activeCooking.recipe) {
       const steps = this.activeCooking.recipe.steps || [];
       const curr = steps[this.activeCooking.step - 1];
@@ -900,11 +837,133 @@ class SousChefVoiceApp {
       pro_tip: "Letting food rest off the heat retains moisture."
     });
 
-    this.speak(alertMsg);
+    this.voiceEngine.speak(alertMsg);
   }
 
   // ------------------------------------------------------------------------
-  // Kitchen Storage & Grocery View
+  // View 2: Cookbook & Community (Browse & 1-Click Share)
+  // ------------------------------------------------------------------------
+  async fetchRecipes() {
+    try {
+      const res = await fetch('/api/recipes');
+      if (res.ok) {
+        const data = await res.json();
+        this.allRecipes = data.recipes || [];
+        this.renderCookbookGrid();
+      }
+    } catch (err) {
+      console.warn('Could not fetch recipes:', err);
+    }
+  }
+
+  renderCookbookGrid() {
+    if (!this.cookbookRecipesGrid) return;
+    this.cookbookRecipesGrid.innerHTML = '';
+
+    if (this.allRecipes.length === 0) {
+      this.cookbookRecipesGrid.innerHTML = `
+        <div style="grid-column: 1 / -1; padding: 48px; text-align: center; color: rgba(255,255,255,0.4);">
+          No recipes found in cookbook. Add one above!
+        </div>
+      `;
+      return;
+    }
+
+    this.allRecipes.forEach(rec => {
+      const card = document.createElement('div');
+      card.className = 'cookbook-card';
+
+      const ingredientsList = (rec.ingredients || [])
+        .map(i => typeof i === 'string' ? i : i.item)
+        .slice(0, 4)
+        .join(', ');
+
+      card.innerHTML = `
+        <div class="cookbook-card-cover">
+          <span class="cookbook-card-emoji">${this.getItemEmoji(rec.name)}</span>
+        </div>
+        <div class="cookbook-card-info">
+          <h3 class="cookbook-card-title">${escapeHtml(rec.name)}</h3>
+          <p class="cookbook-card-meta">⏱️ ${rec.prep_minutes || 15} min · 🍽️ ${rec.servings || 2} servings · ~${Math.round(rec.kcal_per_serving || 300)} kcal</p>
+          <p class="cookbook-card-ingredients"><strong>Ingredients:</strong> ${escapeHtml(ingredientsList)}${(rec.ingredients || []).length > 4 ? '...' : ''}</p>
+          <div class="cookbook-card-actions">
+            <button class="cook-now-btn" data-id="${rec.id}">🍳 Cook Now</button>
+            <button class="share-recipe-btn" data-id="${rec.id}">🔗 Share</button>
+          </div>
+        </div>
+      `;
+
+      // Cook Now Action
+      card.querySelector('.cook-now-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.startRecipe(rec.id);
+      });
+
+      // Share Recipe Action
+      card.querySelector('.share-recipe-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.shareRecipe(rec);
+      });
+
+      this.cookbookRecipesGrid.appendChild(card);
+    });
+  }
+
+  async startRecipe(recipeId) {
+    this.voiceEngine.playTapChime();
+    try {
+      const res = await fetch('/api/cooking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start', recipe_id: recipeId })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        this.activeCooking = data.active_cooking;
+        this.renderCookingStage();
+        this.switchMode('cooking');
+        const startMsg = data.spoken_message || `Let's make ${this.activeCooking.recipe.name}! Step 1: Check your ingredients.`;
+        this.voiceEngine.speak(startMsg, data.audio_url);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  shareRecipe(recipe) {
+    const shareData = {
+      title: `Sous-Chef Recipe: ${recipe.name}`,
+      text: `Try cooking ${recipe.name}! Ready in ${recipe.prep_minutes || 15} minutes with Sous-Chef on Alexa.`,
+      url: window.location.origin + `/?recipe=${encodeURIComponent(recipe.id || recipe.name)}`
+    };
+
+    if (navigator.share) {
+      navigator.share(shareData).catch(err => {
+        if (err.name !== 'AbortError') console.warn('Share error:', err);
+      });
+    } else {
+      navigator.clipboard.writeText(shareData.url).then(() => {
+        this.showToast(`Recipe link copied to clipboard! 📋`);
+      }).catch(() => {
+        this.showToast(`Shared: ${recipe.name}`);
+      });
+    }
+  }
+
+  showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'apple-toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add('visible'), 10);
+    setTimeout(() => {
+      toast.classList.remove('visible');
+      setTimeout(() => toast.remove(), 300);
+    }, 2800);
+  }
+
+  // ------------------------------------------------------------------------
+  // View 3: Pantry Freshness & Spoilage Prevention Index
   // ------------------------------------------------------------------------
   async fetchInventory() {
     try {
@@ -923,37 +982,49 @@ class SousChefVoiceApp {
     const now = new Date();
     const urgentCutoff = new Date(now.getTime() + 48 * 60 * 60 * 1000);
 
-    let fridgeCount = 0;
-    let pantryCount = 0;
-    let freezerCount = 0;
-    let expiringCount = 0;
+    const perishables = ['milk', 'chicken', 'beef', 'yogurt', 'spinach', 'cream', 'fish', 'salmon', 'berries', 'turkey', 'pork'];
+
+    let safeCount = 0;
+    let warnCount = 0;
+    let dangerCount = 0;
 
     this.inventoryItems.forEach(item => {
       const z = (item.zone || 'pantry').toLowerCase();
-      if (z.includes('fridge') || z.includes('refrigerator')) fridgeCount++;
-      else if (z.includes('freezer')) freezerCount++;
-      else pantryCount++;
+      const isOutside = !z.includes('fridge') && !z.includes('refrigerator') && !z.includes('freezer');
+      const isPerishable = perishables.some(p => item.item.toLowerCase().includes(p));
+      const isPerishableOutside = isPerishable && isOutside;
+      const isExpiring = item.expires_at && new Date(item.expires_at) <= urgentCutoff;
 
-      if (item.expires_at && new Date(item.expires_at) <= urgentCutoff) {
-        expiringCount++;
+      if (isPerishableOutside) {
+        dangerCount++;
+      } else if (isExpiring) {
+        warnCount++;
+      } else {
+        safeCount++;
       }
     });
 
     const total = this.inventoryItems.length;
-    this.storageTotalNum.textContent = total;
-    this.countFridge.textContent = fridgeCount;
-    this.countPantry.textContent = pantryCount;
-    this.countFreezer.textContent = freezerCount;
-    this.countExpiring.textContent = expiringCount;
+    this.countSafe.textContent = safeCount;
+    this.countWarn.textContent = warnCount;
+    this.countDanger.textContent = dangerCount;
 
-    // Segmented Allocation Bar
+    // Household Freshness Health Score (100 - penalties for danger & warn)
+    let healthScore = 100;
     if (total > 0) {
-      const fPct = Math.round((fridgeCount / total) * 100);
-      const pPct = Math.round((pantryCount / total) * 100);
-      const zPct = Math.max(0, 100 - fPct - pPct);
-      this.barFridge.style.width = `${fPct}%`;
-      this.barPantry.style.width = `${pPct}%`;
-      this.barFreezer.style.width = `${zPct}%`;
+      const safeRatio = safeCount / total;
+      healthScore = Math.max(10, Math.round(safeRatio * 100) - (dangerCount * 10));
+    }
+    this.freshnessScoreVal.textContent = `${Math.min(100, Math.max(0, healthScore))}%`;
+
+    // Dynamic Visual Slices in the Health Gauge
+    if (total > 0) {
+      const safePct = Math.round((safeCount / total) * 100);
+      const warnPct = Math.round((warnCount / total) * 100);
+      const dangerPct = Math.max(0, 100 - safePct - warnPct);
+      this.barSafe.style.width = `${safePct}%`;
+      this.barWarn.style.width = `${warnPct}%`;
+      this.barDanger.style.width = `${dangerPct}%`;
     }
 
     // Filter Items
@@ -961,10 +1032,15 @@ class SousChefVoiceApp {
     const items = this.inventoryItems.filter(item => {
       if (q && !item.item.toLowerCase().includes(q)) return false;
       const z = (item.zone || 'pantry').toLowerCase();
+      const isOutside = !z.includes('fridge') && !z.includes('refrigerator') && !z.includes('freezer');
+      const isPerishable = perishables.some(p => item.item.toLowerCase().includes(p));
+      const isPerishableOutside = isPerishable && isOutside;
+      const isExpiring = item.expires_at && new Date(item.expires_at) <= urgentCutoff;
+
       if (this.activeFilter === 'fridge') return z.includes('fridge') || z.includes('refrigerator');
       if (this.activeFilter === 'pantry') return z.includes('pantry');
       if (this.activeFilter === 'freezer') return z.includes('freezer');
-      if (this.activeFilter === 'expiring') return item.expires_at && new Date(item.expires_at) <= urgentCutoff;
+      if (this.activeFilter === 'expiring') return isExpiring || isPerishableOutside;
       return true;
     });
 
@@ -988,9 +1064,8 @@ class SousChefVoiceApp {
       if (zoneRaw.includes('fridge') || zoneRaw.includes('refrigerator')) zoneLabel = 'Fridge';
       else if (zoneRaw.includes('freezer')) zoneLabel = 'Freezer';
 
-      const perishables = ['milk', 'chicken', 'beef', 'yogurt', 'spinach', 'cream', 'fish', 'salmon', 'berries', 'turkey', 'pork'];
-      const isPerishable = perishables.some(p => item.item.toLowerCase().includes(p));
       const isOutside = zoneLabel === 'Pantry';
+      const isPerishable = perishables.some(p => item.item.toLowerCase().includes(p));
       const isPerishableOutside = isPerishable && isOutside;
 
       if (isPerishableOutside) {
@@ -1041,10 +1116,9 @@ class SousChefVoiceApp {
                 body: JSON.stringify({ item: item.item, zone: 'fridge' })
               });
               if (res.ok) {
-                this.musicEngine.playCheckChime();
+                this.voiceEngine.playTapChime();
                 const ack = `Moved your ${item.item} to the refrigerator. Freshness extended!`;
-                this.appendTranscript('assistant', ack);
-                this.speak(ack);
+                this.voiceEngine.speak(ack);
                 await this.fetchInventory();
               }
             } catch (err) {
@@ -1069,7 +1143,7 @@ class SousChefVoiceApp {
   }
 
   // ------------------------------------------------------------------------
-  // Nutrition & Daily Goals
+  // Daily Nutrition Rings
   // ------------------------------------------------------------------------
   async fetchNutrition() {
     try {
@@ -1078,17 +1152,22 @@ class SousChefVoiceApp {
         const data = await res.json();
         const kcal = Math.round(data.total_kcal || 0);
         const prot = Math.round(data.total_protein_g || 0);
-        this.todayKcal.textContent = kcal;
-        this.todayProtein.textContent = `${prot}g`;
 
-        // Kinetic Rings Animation
-        const kcalCircum = 351.85;
-        const protCircum = 263.89;
-        const kcalRatio = Math.min(1.0, kcal / 2000);
-        const protRatio = Math.min(1.0, prot / 120);
+        if (this.ringCalCount) this.ringCalCount.textContent = kcal;
+        if (this.macroCaloriesVal) this.macroCaloriesVal.textContent = `${kcal} / 2,000`;
+        if (this.macroProteinVal) this.macroProteinVal.textContent = `${prot}g / 120g`;
 
-        this.ringKcal.style.strokeDashoffset = kcalCircum * (1 - kcalRatio);
-        this.ringProt.style.strokeDashoffset = protCircum * (1 - protRatio);
+        // Kinetic Apple Macro Rings
+        if (this.ringCalories) {
+          const kcalCircum = 502;
+          const kcalRatio = Math.min(1.0, kcal / 2000);
+          this.ringCalories.style.strokeDashoffset = kcalCircum * (1 - kcalRatio);
+        }
+        if (this.ringProtein) {
+          const protCircum = 377;
+          const protRatio = Math.min(1.0, prot / 120);
+          this.ringProtein.style.strokeDashoffset = protCircum * (1 - protRatio);
+        }
       }
     } catch (err) {
       console.warn('Could not fetch nutrition:', err);
@@ -1096,145 +1175,36 @@ class SousChefVoiceApp {
   }
 
   // ------------------------------------------------------------------------
-  // Recipe Discovery Catalog
+  // Modal & Drawer Management
   // ------------------------------------------------------------------------
-  async fetchRecipes() {
-    try {
-      const res = await fetch('/api/recipes');
-      if (res.ok) {
-        const data = await res.json();
-        this.allRecipes = data.recipes || [];
-        this.renderRecipesList();
-      }
-    } catch (err) {
-      console.warn('Could not fetch recipes:', err);
-    }
-  }
-
-  renderRecipesList() {
-    this.drawerRecipesList.innerHTML = '';
-    this.allRecipes.forEach(rec => {
-      const card = document.createElement('div');
-      card.className = 'recipe-book-card';
-      card.innerHTML = `
-        <div>
-          <div class="recipe-book-title">${escapeHtml(rec.name)}</div>
-          <div class="recipe-book-meta">⏱️ ${rec.prep_minutes} min · 🍽️ ${rec.servings} serv · ~${Math.round(rec.kcal_per_serving || 300)} kcal</div>
-        </div>
-        <button class="recipe-book-btn">Cook</button>
-      `;
-      card.addEventListener('click', () => {
-        this.startRecipe(rec.id);
-        this.closeAllDrawers();
-      });
-      this.drawerRecipesList.appendChild(card);
-    });
-  }
-
-  async startRecipe(recipeId) {
-    try {
-      const res = await fetch('/api/cooking', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'start', recipe_id: recipeId })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        this.activeCooking = data.active_cooking;
-        this.renderCookingStage();
-        this.switchMode('cooking');
-        this.musicEngine.play();
-        const startMsg = `Starting ${this.activeCooking.recipe.name}. Ambient cooking music is on! Check off your prep or say 'Next step'.`;
-        this.appendTranscript('assistant', startMsg);
-        this.speak(startMsg);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  // ------------------------------------------------------------------------
-  // Drawer Management (Progressive Disclosure)
-  // ------------------------------------------------------------------------
-  closeAllDrawers() {
-    this.chatSlideDrawer.classList.remove('active-drawer');
-    this.macroSlideDrawer.classList.remove('active-drawer');
-    this.recipesSlideDrawer.classList.remove('active-drawer');
-    this.toggleChatDrawerBtn.classList.remove('active');
-    this.toggleMacroDrawerBtn.classList.remove('active');
-    this.toggleRecipesDrawerBtn.classList.remove('active');
-  }
-
-  openChatDrawer() {
-    const isCurrentlyOpen = this.chatSlideDrawer.classList.contains('active-drawer');
-    this.closeAllDrawers();
-    if (!isCurrentlyOpen) {
-      this.chatSlideDrawer.classList.add('active-drawer');
-      this.toggleChatDrawerBtn.classList.add('active');
-      setTimeout(() => this.drawerTextInput.focus(), 150);
-    }
-  }
-
   openMacroDrawer() {
-    const isCurrentlyOpen = this.macroSlideDrawer.classList.contains('active-drawer');
-    this.closeAllDrawers();
-    if (!isCurrentlyOpen) {
-      this.macroSlideDrawer.classList.add('active-drawer');
-      this.toggleMacroDrawerBtn.classList.add('active');
-    }
+    this.macroSlideDrawer.classList.add('active-drawer');
+    this.toggleMacroDrawerBtn.classList.add('active');
   }
 
-  openRecipesDrawer() {
-    const isCurrentlyOpen = this.recipesSlideDrawer.classList.contains('active-drawer');
-    this.closeAllDrawers();
-    if (!isCurrentlyOpen) {
-      this.recipesSlideDrawer.classList.add('active-drawer');
-      this.toggleRecipesDrawerBtn.classList.add('active');
-    }
+  closeMacroDrawer() {
+    this.macroSlideDrawer.classList.remove('active-drawer');
+    this.toggleMacroDrawerBtn.classList.remove('active');
+  }
+
+  openCustomRecipeModal() {
+    this.customRecipeModal.classList.remove('hidden');
+  }
+
+  closeCustomRecipeModal() {
+    this.customRecipeModal.classList.add('hidden');
   }
 
   // ------------------------------------------------------------------------
   // Event Listeners
   // ------------------------------------------------------------------------
   initEventListeners() {
-    // Top Chrome Mode Switcher
+    // Mode Switcher Tabs
     this.modeCookingBtn.addEventListener('click', () => this.switchMode('cooking'));
+    this.modeCookbookBtn.addEventListener('click', () => this.switchMode('cookbook'));
     this.modeStorageBtn.addEventListener('click', () => this.switchMode('storage'));
 
-    // Audio Ambience
-    this.musicBtn.addEventListener('click', () => {
-      if (this.musicEngine.isPlaying) this.musicEngine.stop();
-      else this.musicEngine.play();
-    });
-    this.musicVol.addEventListener('input', (e) => {
-      this.musicEngine.setVolume(Number(e.target.value) / 100);
-    });
-
-    // Servings Scale Chips
-    document.querySelectorAll('.scale-chip').forEach(chip => {
-      chip.addEventListener('click', async () => {
-        if (!this.activeCooking) return;
-        const scale = parseFloat(chip.dataset.scale);
-        this.activeCooking.servings = scale;
-        this.renderCookingStage();
-        try {
-          await fetch('/api/cooking', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'set_servings', servings: scale })
-          });
-        } catch (e) {
-          console.warn(e);
-        }
-      });
-    });
-
-    // Transport Playback Controls
-    this.timerToggleBtn.addEventListener('click', () => {
-      if (this.isTimerRunning) this.pauseStepTimer();
-      else this.startStepTimer();
-    });
-
+    // Cooking Tactical Controls
     this.prevStepBtn.addEventListener('click', async () => {
       this.pauseStepTimer();
       try {
@@ -1247,6 +1217,9 @@ class SousChefVoiceApp {
           const data = await res.json();
           this.activeCooking = data.active_cooking;
           this.renderCookingStage();
+          if (data.spoken_message) {
+            this.voiceEngine.speak(data.spoken_message, data.audio_url);
+          }
         }
       } catch (err) {
         console.error(err);
@@ -1265,15 +1238,23 @@ class SousChefVoiceApp {
           const data = await res.json();
           this.activeCooking = data.active_cooking;
           this.renderCookingStage();
+          if (data.spoken_message) {
+            this.voiceEngine.speak(data.spoken_message, data.audio_url);
+          }
         }
       } catch (err) {
         console.error(err);
       }
     });
 
+    this.timerToggleBtn.addEventListener('click', () => {
+      if (this.isTimerRunning) this.pauseStepTimer();
+      else this.startStepTimer();
+    });
+
     this.finishMealBtn.addEventListener('click', async () => {
       this.pauseStepTimer();
-      this.musicEngine.playCheckChime();
+      this.voiceEngine.playTapChime();
       try {
         const res = await fetch('/api/cooking', {
           method: 'POST',
@@ -1285,8 +1266,7 @@ class SousChefVoiceApp {
           this.activeCooking = null;
           this.renderCookingStage();
           const celebrationMsg = data.spoken_message || "Delicious! I've deducted your ingredients and logged your meal nutrition.";
-          this.appendTranscript('assistant', celebrationMsg);
-          this.speak(celebrationMsg);
+          this.voiceEngine.speak(celebrationMsg, data.audio_url);
           await this.fetchInventory();
           await this.fetchNutrition();
         }
@@ -1295,12 +1275,7 @@ class SousChefVoiceApp {
       }
     });
 
-    // Star Recipe (if present)
-    this.starRecipeBtn?.addEventListener('click', () => {
-      this.starRecipeBtn.classList.toggle('starred');
-    });
-
-    // Lyrics vs Prep Tab Toggle
+    // Steps vs Prep Tab Switcher
     this.tabShowSteps.addEventListener('click', () => {
       this.tabShowSteps.classList.add('active');
       this.tabShowPrep.classList.remove('active');
@@ -1315,40 +1290,89 @@ class SousChefVoiceApp {
       this.lyricsViewport.classList.add('hidden');
     });
 
-    // Floating Dock Buttons
-    this.voiceActivityPill.addEventListener('click', () => this.toggleListening());
-    this.toggleChatDrawerBtn.addEventListener('click', () => this.openChatDrawer());
-    this.toggleMacroDrawerBtn.addEventListener('click', () => this.openMacroDrawer());
-    this.toggleRecipesDrawerBtn.addEventListener('click', () => this.openRecipesDrawer());
-
-    // Drawer Close Buttons
-    this.closeChatDrawerBtn.addEventListener('click', () => this.closeAllDrawers());
-    this.closeMacroDrawerBtn.addEventListener('click', () => this.closeAllDrawers());
-    this.closeRecipesDrawerBtn.addEventListener('click', () => this.closeAllDrawers());
-
-    // Chat Drawer Input
-    this.drawerMicBtn.addEventListener('click', () => this.toggleListening());
-    this.drawerChatForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const val = this.drawerTextInput.value.trim();
+    // On-Screen Speech & Query Bar
+    this.screenMicBtn.addEventListener('click', () => this.toggleListening());
+    this.screenAskBtn.addEventListener('click', () => {
+      const val = this.screenTextInput.value.trim();
       if (!val) return;
-      this.drawerTextInput.value = '';
+      this.screenTextInput.value = '';
       this.handleUserUtterance(val);
     });
 
-    // Emergency Rescue Chips
-    document.querySelectorAll('.rescue-chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        this.handleUserUtterance(chip.dataset.phrase);
-      });
+    this.screenTextInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const val = this.screenTextInput.value.trim();
+        if (!val) return;
+        this.screenTextInput.value = '';
+        this.handleUserUtterance(val);
+      }
     });
 
-    // Emergency Alert Sheet Confirm
+    this.voiceActivityPill.addEventListener('click', () => this.toggleListening());
+
+    // Nutrition Drawer Toggle
+    this.toggleMacroDrawerBtn.addEventListener('click', () => {
+      if (this.macroSlideDrawer.classList.contains('active-drawer')) {
+        this.closeMacroDrawer();
+      } else {
+        this.openMacroDrawer();
+      }
+    });
+    this.closeMacroDrawerBtn.addEventListener('click', () => this.closeMacroDrawer());
+
+    // Custom Recipe Modal
+    this.customRecipeOpenBtn?.addEventListener('click', () => this.openCustomRecipeModal());
+    this.modalCloseBtn?.addEventListener('click', () => this.closeCustomRecipeModal());
+    this.btnCancelModal?.addEventListener('click', () => this.closeCustomRecipeModal());
+    this.modalBackdrop?.addEventListener('click', () => this.closeCustomRecipeModal());
+
+    this.customRecipeForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('recipe-title-input').value.trim();
+      const prepMinutes = parseInt(document.getElementById('recipe-prep-time').value, 10) || 15;
+      const servings = parseInt(document.getElementById('recipe-servings').value, 10) || 2;
+      const rawIngs = document.getElementById('recipe-ingredients-input').value.trim();
+
+      if (!title || !rawIngs) return;
+
+      const ingredients = rawIngs.split(',').map(s => {
+        const clean = s.trim();
+        return { item: clean, qty: 1, unit: 'serving' };
+      }).filter(i => i.item.length > 0);
+
+      const newRecipe = {
+        name: title,
+        prep_minutes: prepMinutes,
+        servings: servings,
+        ingredients: ingredients,
+        steps: [
+          { instruction: "Prepare and inspect all ingredients.", timer_seconds: 0 },
+          { instruction: "Cook ingredients thoroughly according to preference.", timer_seconds: 300 },
+          { instruction: "Plate nicely, season to taste, and serve hot!", timer_seconds: 0 }
+        ]
+      };
+
+      try {
+        const res = await fetch('/api/recipes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newRecipe)
+        });
+        if (res.ok) {
+          this.closeCustomRecipeModal();
+          this.customRecipeForm.reset();
+          await this.fetchRecipes();
+          this.showToast(`Saved "${title}" to your cookbook!`);
+          this.voiceEngine.speak(`Saved ${title} to your family cookbook!`);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    // Emergency Alert Confirm
     this.alertRemedyConfirmBtn.addEventListener('click', () => {
       this.emergencyAlertSheet.classList.add('hidden');
-      if (this.musicEngine.wasPlayingBeforeTimer) {
-        this.musicEngine.play();
-      }
     });
 
     // Storage Search & Segment Filters
@@ -1374,13 +1398,13 @@ class SousChefVoiceApp {
       });
     });
 
-    // Apple Keyboard Navigation Shortcuts
+    // Keyboard Shortcuts
     window.addEventListener('keydown', (e) => {
-      // Don't trigger shortcuts if user is typing in an input
       if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
         if (e.key === 'Escape') {
           document.activeElement.blur();
-          this.closeAllDrawers();
+          this.closeMacroDrawer();
+          this.closeCustomRecipeModal();
         }
         return;
       }
@@ -1397,9 +1421,10 @@ class SousChefVoiceApp {
         this.prevStepBtn.click();
       } else if (e.key === '/') {
         e.preventDefault();
-        this.openChatDrawer();
+        this.screenTextInput.focus();
       } else if (e.key === 'Escape') {
-        this.closeAllDrawers();
+        this.closeMacroDrawer();
+        this.closeCustomRecipeModal();
         this.emergencyAlertSheet.classList.add('hidden');
       }
     });
