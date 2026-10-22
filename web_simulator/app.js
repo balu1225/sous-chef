@@ -873,16 +873,37 @@ class SousChefVoiceApp {
       if (zoneRaw.includes('fridge') || zoneRaw.includes('refrigerator')) zoneLabel = 'Fridge';
       else if (zoneRaw.includes('freezer')) zoneLabel = 'Freezer';
 
+      const perishables = ['milk', 'chicken', 'beef', 'yogurt', 'spinach', 'cream', 'fish', 'salmon', 'berries', 'turkey', 'pork'];
+      const isPerishable = perishables.some(p => item.item.toLowerCase().includes(p));
+      const isOutside = zoneLabel === 'Pantry';
+      const isPerishableOutside = isPerishable && isOutside;
+
+      if (isPerishableOutside) {
+        card.classList.add('perishable-outside');
+      }
+
+      let expiryText = isExpiring ? '⚠️ Expires within 48h' : 'Fresh & ready';
+      if (isPerishableOutside) {
+        expiryText = '⚠️ Left outside! High spoilage risk (<24h)';
+      }
+
+      const moveAction = isPerishableOutside ? `
+        <button type="button" class="move-fridge-btn" title="Move to refrigerator">
+          ❄️ Move to Fridge
+        </button>
+      ` : '';
+
       card.innerHTML = `
         <div class="item-card-top">
           <span class="item-emoji">${this.getItemEmoji(item.item)}</span>
-          <span class="item-location-badge">${zoneLabel}</span>
+          <span class="item-location-badge ${isPerishableOutside ? 'urgent' : ''}">${isPerishableOutside ? '⚠️ OUTSIDE' : zoneLabel}</span>
         </div>
         <div class="item-card-body">
           <h4>${escapeHtml(item.item)}</h4>
-          <p class="item-expiry-text ${isExpiring ? 'urgent' : ''}">
-            ${isExpiring ? '⚠️ Expires within 48h' : 'Fresh & ready'}
+          <p class="item-expiry-text ${isPerishableOutside ? 'danger' : (isExpiring ? 'urgent' : '')}">
+            ${expiryText}
           </p>
+          ${moveAction}
         </div>
         <div class="item-card-footer">
           <span class="item-qty-badge">${formatDisplayQty(item.qty, item.unit)}</span>
@@ -892,6 +913,31 @@ class SousChefVoiceApp {
           </div>
         </div>
       `;
+
+      if (isPerishableOutside) {
+        const moveBtn = card.querySelector('.move-fridge-btn');
+        if (moveBtn) {
+          moveBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            try {
+              const res = await fetch('/api/inventory/move', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ item: item.item, zone: 'fridge' })
+              });
+              if (res.ok) {
+                this.musicEngine.playCheckChime();
+                const ack = `Moved your ${item.item} to the refrigerator. Freshness extended!`;
+                this.appendTranscript('assistant', ack);
+                this.speak(ack);
+                await this.fetchInventory();
+              }
+            } catch (err) {
+              console.error(err);
+            }
+          });
+        }
+      }
 
       card.querySelector('.dec-btn').addEventListener('click', (e) => {
         e.stopPropagation();

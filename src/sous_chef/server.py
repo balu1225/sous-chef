@@ -49,6 +49,11 @@ from matching import (
 from nutrition import calculate_meal_nutrition
 from remedies import get_remedy_for_mishap
 from bedrock import tag_recipe_ingredients, is_bedrock_configured
+from shelf_life import (
+    calculate_shelf_life,
+    resolve_fifo_expiry,
+    generate_duplicate_batch_advisory,
+)
 
 log = logging.getLogger("kitchen_agent")
 
@@ -63,8 +68,8 @@ INSTRUCTIONS = (
 )
 
 PUBLIC_PATHS = frozenset({"/healthz", "/readyz", "/", "/style.css", "/app.js",
-                          "/api/inventory", "/api/converse", "/api/nutrition",
-                          "/api/recipes", "/api/cooking"})
+                          "/api/inventory", "/api/inventory/move", "/api/converse",
+                          "/api/nutrition", "/api/recipes", "/api/cooking"})
 
 
 @dataclass
@@ -521,6 +526,38 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
         rows = await run_blocking(led.list_items, state.config.tool_timeout_s, retry_transient=True)
         active = [_item_view(r) for r in rows if r["qty"] > 0]
         return JSONResponse({"items": active, "count": len(active)})
+
+    async def api_inventory_move(request: Request) -> JSONResponse:
+        if state.store is None:
+            return JSONResponse({"error": "store_unavailable"}, status_code=503)
+        body = await request.json()
+        item = (body.get("item") or "").strip().lower()
+        target_zone = (body.get("target_zone") or body.get("zone") or "fridge").strip().lower()
+        if not item:
+            return JSONResponse({"error": "item_required"}, status_code=400)
+        exp_dt, is_perishable_outside, warning = calculate_shelf_life(item, target_zone)
+        with state.store.pool.connection() as conn:
+            conn.execute(
+                "UPDATE inventory SET zone=%s, expires_at=%s, updated_at=now() "
+                "WHERE household_id=%s AND item=%s",
+                (target_zone, exp_dt, state.config.household_id, item)
+            )
+        zone_display = "Refrigerator" if target_zone == "fridge" else ("Freezer" if target_zone == "freezer" else "Pantry")
+        msg = f"Moved {item} to {zone_display} and refreshed shelf-life."
+        return JSONResponse({
+            "ok": True,
+            "moved": True,
+            "item": {
+                "name": item,
+                "item": item,
+                "zone": target_zone,
+                "expires_at": exp_dt.isoformat(),
+            },
+            "zone": target_zone,
+            "expires_at": exp_dt.isoformat(),
+            "spoken_message": msg,
+            "warning": warning
+        })
 
     async def api_nutrition(_: Request) -> JSONResponse:
         if state.store is None:
@@ -1206,15 +1243,64 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
             msg = f"Undid your last change. Restored {', '.join(names)}."
             return JSONResponse({"spoken_message": msg, "undone": names})
 
+        elif res.action == "move_zone" and res.items:
+            target_zone = res.context.get("target_zone", "fridge")
+            moved_names = []
+            for i in res.items:
+                exp_dt, _, _ = calculate_shelf_life(i.item, target_zone)
+                with state.store.pool.connection() as conn:
+                    conn.execute(
+                        "UPDATE inventory SET zone=%s, expires_at=%s, updated_at=now() "
+                        "WHERE household_id=%s AND item=%s",
+                        (target_zone, exp_dt, state.config.household_id, i.item)
+                    )
+                moved_names.append(i.item)
+            zone_display = "refrigerator" if target_zone == "fridge" else target_zone
+            msg = f"Moved your {', '.join(moved_names)} to the {zone_display} and refreshed shelf-life!"
+            return JSONResponse({"spoken_message": msg, "moved": moved_names, "target_zone": target_zone})
+
         elif res.action in ("add", "consume") and res.items:
-            ops = [{"type": res.action, "item": i.item, "qty": i.qty, "unit": i.unit, "zone": i.zone}
-                   for i in res.items if i.qty is not None]
+            ops = []
+            warnings = []
+            advisories = []
+            if res.action == "add":
+                existing_rows = await run_blocking(led.list_items, state.config.tool_timeout_s, retry_transient=True)
+                existing_map = {r["item"]: r for r in existing_rows if r["qty"] > 0}
+                for i in res.items:
+                    if i.qty is None:
+                        continue
+                    exp_dt, is_perishable_outside, warn = calculate_shelf_life(i.item, i.zone)
+                    if warn:
+                        warnings.append(warn)
+                    if i.item in existing_map:
+                        ex = existing_map[i.item]
+                        adv = generate_duplicate_batch_advisory(
+                            i.item, ex["qty"], ex["unit"], ex["expires_at"], i.zone, ex["zone"]
+                        )
+                        if adv:
+                            advisories.append(adv)
+                    ops.append({
+                        "type": "add",
+                        "item": i.item,
+                        "qty": i.qty,
+                        "unit": i.unit,
+                        "zone": i.zone,
+                        "expires_at": exp_dt.isoformat()
+                    })
+            else:
+                ops = [{"type": "consume", "item": i.item, "qty": i.qty, "unit": i.unit, "zone": i.zone}
+                       for i in res.items if i.qty is not None]
+
             if ops:
                 batch_res = await run_blocking(lambda: led.apply_batch(ops, idempotency_key=str(uuid.uuid4())),
                                              state.config.tool_timeout_s, retry_transient=False)
                 names = [format_spoken_quantity(c['after'], c['unit'], c['item']) for c in batch_res.get("changes", [])]
                 action_word = "Added" if res.action == "add" else "Used"
                 msg = f"{action_word} {', '.join(names)} in your kitchen."
+                if advisories:
+                    msg += " " + " ".join(advisories)
+                if warnings:
+                    msg += " " + " ".join(warnings)
                 return JSONResponse({"spoken_message": msg, "changes": batch_res.get("changes", [])})
 
         msg = f"I heard: '{utterance}'. You can ask 'What can I make in 15 minutes?', 'The milk is spoiled', or 'What is in my kitchen?'."
@@ -1242,6 +1328,7 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
                             Route("/manifest.json", serve_manifest, methods=["GET"]),
                             Route("/sw.js", serve_sw, methods=["GET"]),
                             Route("/api/inventory", api_inventory, methods=["GET"]),
+                            Route("/api/inventory/move", api_inventory_move, methods=["POST"]),
                             Route("/api/nutrition", api_nutrition, methods=["GET"]),
                             Route("/api/recipes", api_recipes, methods=["GET", "POST"]),
                             Route("/api/cooking", api_cooking, methods=["GET", "POST"]),

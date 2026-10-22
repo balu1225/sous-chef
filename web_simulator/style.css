@@ -1049,6 +1049,38 @@ input {
   background: rgba(255, 69, 58, 0.05);
 }
 
+.storage-item-card.perishable-outside {
+  border-color: rgba(255, 159, 10, 0.6);
+  background: rgba(255, 159, 10, 0.09);
+  box-shadow: 0 0 16px rgba(255, 159, 10, 0.15);
+}
+
+.item-expiry-text.danger {
+  color: var(--apple-amber);
+  font-weight: 700;
+}
+
+.move-fridge-btn {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--apple-teal);
+  background: rgba(100, 210, 255, 0.14);
+  border: 1px solid rgba(100, 210, 255, 0.35);
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  transition: all 0.2s ease;
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.move-fridge-btn:hover {
+  background: var(--apple-teal);
+  color: #021a24;
+  transform: scale(1.04);
+}
+
 .item-card-top {
   display: flex;
   align-items: center;

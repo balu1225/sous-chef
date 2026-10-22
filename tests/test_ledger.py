@@ -183,3 +183,29 @@ def test_row_level_security_blocks_other_households(store):
         conn.execute("REVOKE ALL ON ALL TABLES IN SCHEMA public FROM kitchen_app")
         conn.execute("REVOKE USAGE ON SCHEMA public FROM kitchen_app")
         conn.execute("DROP ROLE kitchen_app")
+
+
+def test_fifo_expiry_preservation_for_duplicate_batches(led):
+    # Batch 1: 1 gallon milk left outside, expires soon
+    led.apply_batch([
+        {"type": "add", "item": "milk", "qty": 1, "unit": "gallons", "zone": "pantry",
+         "expires_at": "2026-10-23T10:00:00+00:00"}
+    ], idempotency_key="batch-1-outside")
+
+    item1 = led.get("milk")
+    assert item1["qty"] == 3785.41
+    assert "2026-10-23" in item1["expires_at"]
+
+    # Batch 2: Fresh 1 gallon milk placed in fridge, expires 7 days later
+    led.apply_batch([
+        {"type": "add", "item": "milk", "qty": 1, "unit": "gallons", "zone": "fridge",
+         "expires_at": "2026-10-30T10:00:00+00:00"}
+    ], idempotency_key="batch-2-fresh")
+
+    item2 = led.get("milk")
+    assert item2["qty"] == 7570.82
+    # FIFO Invariant: earlier expiry must NOT be overwritten by later expiry
+    assert "2026-10-23" in item2["expires_at"]
+
+    # Replay must produce identical FIFO result with zero discrepancies against projection
+    assert led.verify() == []

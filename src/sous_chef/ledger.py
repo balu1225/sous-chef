@@ -230,7 +230,12 @@ class Ledger:
 
         zone = op.get("zone") or (row["zone"] if row else None)
         expires = parse_ts(op.get("expires_at")) if kind in ("add", "set") else None
-        if expires is None and row:
+        if kind == "add" and row and row["expires_at"]:
+            if expires:
+                expires = min(row["expires_at"], expires)
+            else:
+                expires = row["expires_at"]
+        elif expires is None and row:
             expires = row["expires_at"]
 
         conn.execute("INSERT INTO events (event_id, household_id, batch_id, type, item,"
@@ -295,14 +300,21 @@ class Ledger:
             if e["type"] == "undo" or e["batch_id"] in reverted:
                 continue
             qty = state["qty_base"] if state else D(0)
+            exp = e["expires_at"]
             if e["type"] == "add":
                 qty += e["qty_base"]
+                prev_exp = state["expires_at"] if state else None
+                if prev_exp and exp:
+                    exp = min(prev_exp, exp)
+                elif prev_exp:
+                    exp = prev_exp
             elif e["type"] == "set":
                 qty = e["qty_base"]
             else:
                 qty = max(D(0), qty - e["qty_base"])
+                exp = state["expires_at"] if state else None
             state = {"family": e["family"], "qty_base": qty, "zone": e["zone"],
-                     "expires_at": e["expires_at"]}
+                     "expires_at": exp}
         return state
 
     def _events_for(self, conn, item):

@@ -336,15 +336,49 @@ def parse_kitchen_utterance(text: str) -> ParseResult:
                    for _, name, zone, _ in filtered_items]
         )
 
+    # 6.1 Check for Relocate / Move zone intent (e.g. "move milk to fridge", "put milk in refrigerator")
+    is_move_verb = any(v in clean for v in ["move ", "relocate ", "transfer "])
+    is_put_verb = (clean.startswith("put ") or " put " in clean) and not any(w in clean for w in ["left ", "bought", "purchased", "added"])
+    has_target_zone = any(z in clean for z in ["fridge", "refrigerator", "freezer", "pantry", "outside", "counter"])
+
+    # If it's "put", ensure there is no explicit quantity phrase (e.g. "put 2 lbs of chicken")
+    has_num_or_unit = bool(re.search(r"\b(\d+(\.\d+)?|half|quarter|dozen|two|three|four|five|six|seven|eight|nine|ten)\s*(lbs?|pounds?|gallons?|cups?|oz|ounces?|grams?|kg|liters?|cartons?|bottles?)?\b", clean))
+    
+    if (is_move_verb or (is_put_verb and not has_num_or_unit)) and has_target_zone:
+        target_zone = "fridge"
+        if any(z in clean for z in ["freezer", "freeze", "frozen"]):
+            target_zone = "freezer"
+        elif any(z in clean for z in ["pantry", "outside", "counter", "cupboard", "cabinet", "room temp"]):
+            target_zone = "pantry"
+        elif any(z in clean for z in ["fridge", "refrigerator", "cooler"]):
+            target_zone = "fridge"
+
+        return ParseResult(
+            action="move_zone",
+            items=[ParsedItem(item=name, qty=None, unit=None, zone=target_zone, needs_clarification=False)
+                   for _, name, _, _ in filtered_items],
+            context={"target_zone": target_zone}
+        )
+
     # 7. Action Intent: consume vs add
     action = "add"
     if any(w in clean for w in ["used", "ate", "consumed", "finished"]):
         action = "consume"
 
+    # Check if user explicitly mentioned a zone when adding/storing items
+    detected_zone = None
+    if any(z in clean for z in ["in the freezer", "in freezer", "into freezer", "to freezer", "frozen"]):
+        detected_zone = "freezer"
+    elif any(z in clean for z in ["in the pantry", "in pantry", "into pantry", "outside", "on the counter", "on counter", "room temp", "cabinet", "cupboard"]):
+        detected_zone = "pantry"
+    elif any(z in clean for z in ["in the fridge", "in fridge", "into fridge", "to fridge", "in refrigerator", "into refrigerator"]):
+        detected_zone = "fridge"
+
     parsed_items: list[ParsedItem] = []
     unspecified_items: list[str] = []
 
     for i, (start_idx, name, zone, family) in enumerate(filtered_items):
+        item_zone = detected_zone or zone
         # Look at the substring preceding this item up to the previous item
         prev_end = filtered_items[i - 1][0] + len(filtered_items[i - 1][1]) if i > 0 else 0
         context_window = clean[prev_end:start_idx].strip()
@@ -353,10 +387,12 @@ def parse_kitchen_utterance(text: str) -> ParseResult:
 
         if qty is None:
             # Quantity was NOT found! Mark for clarification.
-            parsed_items.append(ParsedItem(item=name, qty=None, unit=None, zone=zone, needs_clarification=True))
+            parsed_items.append(ParsedItem(item=name, qty=None, unit=None, zone=item_zone, needs_clarification=True))
             unspecified_items.append(name)
         else:
-            parsed_items.append(ParsedItem(item=name, qty=qty, unit=unit, zone=zone, needs_clarification=False))
+            parsed_items.append(ParsedItem(item=name, qty=qty, unit=unit, zone=item_zone, needs_clarification=False))
+
+    ctx = {"zone": detected_zone} if detected_zone else {}
 
     # If any items lack quantity, formulate a single polite clarifying question
     if unspecified_items:
@@ -373,9 +409,10 @@ def parse_kitchen_utterance(text: str) -> ParseResult:
             items=parsed_items,
             needs_clarification=True,
             clarifying_question=q,
+            context=ctx,
         )
 
-    return ParseResult(action=action, items=parsed_items, needs_clarification=False)
+    return ParseResult(action=action, items=parsed_items, needs_clarification=False, context=ctx)
 
 
 def _extract_qty_and_unit(pre_text: str, post_text: str) -> tuple[float | None, str | None]:

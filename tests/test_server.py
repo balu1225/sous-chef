@@ -673,6 +673,66 @@ def test_alexa_skills_kit_integration(server, db):
     assert stop_res.json()["response"]["shouldEndSession"] is True
 
 
+def test_perishability_outside_warning_and_move_endpoint(server, db):
+    headers = {"Authorization": f"Bearer {server.config.auth_token}"}
+
+    # 1. Add milk outside in pantry -> triggers critical warning
+    add_outside_res = httpx.post(
+        f"{server.base}/api/converse",
+        json={"utterance": "I left 1 gallon of milk outside on the counter"},
+        headers=headers
+    )
+    assert add_outside_res.status_code == 200
+    add_data = add_outside_res.json()
+    assert "milk" in add_data["spoken_message"].lower()
+    assert "Left outside" in add_data["spoken_message"] or "spoils rapidly" in add_data["spoken_message"] or "fridge" in add_data["spoken_message"]
+
+    # Verify inventory item is marked zone = pantry
+    inv_res = httpx.get(f"{server.base}/api/inventory", headers=headers)
+    assert inv_res.status_code == 200
+    milk_item = next(i for i in inv_res.json()["items"] if i["item"] == "milk")
+    assert milk_item["zone"] == "pantry"
+
+    # 2. Add duplicate batch of milk in fridge -> FIFO earlier expiry preserved + advisory returned
+    add_fresh_res = httpx.post(
+        f"{server.base}/api/converse",
+        json={"utterance": "I put 1 gallon of milk in the fridge"},
+        headers=headers
+    )
+    assert add_fresh_res.status_code == 200
+    fresh_data = add_fresh_res.json()
+    # Spoken message informs user about existing batch to use first
+    assert "existing batch" in fresh_data["spoken_message"].lower() or "first" in fresh_data["spoken_message"].lower()
+
+    # Total quantity is now 2 gallons
+    inv_res2 = httpx.get(f"{server.base}/api/inventory", headers=headers)
+    milk_item2 = next(i for i in inv_res2.json()["items"] if i["item"] == "milk")
+    assert milk_item2["qty"] == 7570.82
+
+    # 3. Test POST /api/inventory/move to move milk to fridge
+    move_res = httpx.post(
+        f"{server.base}/api/inventory/move",
+        json={"item": "milk", "target_zone": "fridge"},
+        headers=headers
+    )
+    assert move_res.status_code == 200
+    move_data = move_res.json()
+    assert move_data["moved"] is True
+    assert move_data["item"]["zone"] == "fridge"
+    assert "Moved milk to Refrigerator" in move_data["spoken_message"]
+
+    # 4. Test conversational move: "put milk in freezer"
+    conv_move_res = httpx.post(
+        f"{server.base}/api/converse",
+        json={"utterance": "put milk in freezer"},
+        headers=headers
+    )
+    assert conv_move_res.status_code == 200
+    conv_move_data = conv_move_res.json()
+    assert "freezer" in conv_move_data["spoken_message"].lower()
+    assert "milk" in conv_move_data["spoken_message"].lower()
+
+
 
 
 

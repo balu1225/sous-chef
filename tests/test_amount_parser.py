@@ -118,6 +118,34 @@ def test_save_recipe_intents():
     assert "eggs" in item_names
     assert "spinach" in item_names
     assert "cheddar" in item_names
+def test_move_zone_intents():
+    res1 = parse_kitchen_utterance("move milk to fridge")
+    assert res1.action == "move_zone"
+    assert res1.context.get("target_zone") == "fridge"
+    assert len(res1.items) == 1
+    assert res1.items[0].item == "milk"
 
+    res2 = parse_kitchen_utterance("put the chicken in the freezer")
+    assert res2.action == "move_zone"
+    assert res2.context.get("target_zone") == "freezer"
+    assert res2.items[0].item == "chicken"
 
+    res3 = parse_kitchen_utterance("relocate eggs to pantry")
+    assert res3.action == "move_zone"
+    assert res3.context.get("target_zone") == "pantry"
+    assert res3.items[0].item == "eggs"
 
+def test_zone_detection_in_add_utterance():
+    # Perishable placed outside / in pantry
+    res_outside = parse_kitchen_utterance("I left 1 gallon of milk outside on the counter")
+    assert res_outside.action == "add"
+    assert res_outside.context.get("zone") == "pantry"
+    assert res_outside.items[0].item == "milk"
+
+    res_fridge = parse_kitchen_utterance("I put 1 gallon of milk in the fridge")
+    assert res_fridge.action == "add"
+    assert res_fridge.context.get("zone") == "fridge"
+
+    res_freezer = parse_kitchen_utterance("put 2 lbs of chicken in the freezer")
+    assert res_freezer.action == "add"
+    assert res_freezer.context.get("zone") == "freezer"
