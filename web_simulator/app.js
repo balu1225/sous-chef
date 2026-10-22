@@ -718,6 +718,9 @@ class SousChefVoiceApp {
     }
 
     const { recipe, step, checked_prep, servings } = this.activeCooking;
+    const currentServings = servings || recipe.servings || 2;
+    const multiplier = currentServings / (recipe.servings || 2);
+
     this.cookingEmptyState.classList.add('hidden');
     this.cookingActiveContainer.classList.remove('hidden');
     this.tabCooking.classList.add('has-active-recipe');
@@ -726,8 +729,22 @@ class SousChefVoiceApp {
     this.recipeTitle.textContent = recipe.name;
     this.recipeDesc.textContent = recipe.description || "Fresh home-cooked meal.";
     this.recipeBadgeTime.textContent = `⏱️ ${recipe.prep_minutes || 15} min`;
-    this.recipeBadgeServings.textContent = `🍽️ ${servings || recipe.servings} servings`;
-    this.recipeBadgeKcal.textContent = `🔥 ~${Math.round(recipe.kcal_per_serving || 320)} kcal`;
+    this.recipeBadgeServings.textContent = `🍽️ ${currentServings} servings`;
+    this.recipeBadgeKcal.textContent = `🔥 ~${Math.round((recipe.kcal_per_serving || 320) * multiplier)} kcal`;
+
+    // Highlight active scale button
+    document.querySelectorAll('.scale-btn').forEach(btn => {
+      const s = parseFloat(btn.dataset.scale);
+      if (Math.abs(s - currentServings) < 0.1) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+      btn.onclick = () => {
+        this.activeCooking.servings = s;
+        this.renderCookingStation();
+      };
+    });
 
     // 2. Ingredient Prep Checklist
     this.prepItemsList.innerHTML = '';
@@ -738,13 +755,15 @@ class SousChefVoiceApp {
       const isChecked = (checked_prep || []).includes(ing.item);
       if (isChecked) checkedCount++;
 
+      const scaledQty = (ing.qty || 1) * multiplier;
+
       const row = document.createElement('div');
       row.className = `prep-item-row ${isChecked ? 'checked' : ''}`;
       row.innerHTML = `
         <div class="prep-check-box">${isChecked ? '✓' : ''}</div>
         <div class="prep-item-info">
           <span class="prep-item-name">${escapeHtml(ing.item)}</span>
-          <span class="prep-item-qty">${formatDisplayQty(ing.qty, ing.unit)}</span>
+          <span class="prep-item-qty">${formatDisplayQty(scaledQty, ing.unit)}</span>
         </div>
       `;
 
@@ -948,8 +967,26 @@ class SousChefVoiceApp {
       const res = await fetch('/api/nutrition');
       if (res.ok) {
         const data = await res.json();
-        if (this.todayKcal) this.todayKcal.textContent = Math.round(data.total_kcal || 0);
-        if (this.todayProtein) this.todayProtein.textContent = `${Math.round(data.total_protein_g || 0)}g`;
+        const kcal = Math.round(data.total_kcal || 0);
+        const prot = Math.round(data.total_protein_g || 0);
+        if (this.todayKcal) this.todayKcal.textContent = kcal;
+        if (this.todayProtein) this.todayProtein.textContent = `${prot}g`;
+
+        // Animate Kinetic SVG Macro Rings
+        const ringKcal = document.getElementById('ring-kcal');
+        const ringProt = document.getElementById('ring-prot');
+        if (ringKcal) {
+          const targetKcal = 2000;
+          const circumKcal = 301.59;
+          const ratio = Math.min(1.0, kcal / targetKcal);
+          ringKcal.style.strokeDashoffset = circumKcal * (1 - ratio);
+        }
+        if (ringProt) {
+          const targetProt = 120;
+          const circumProt = 226.19;
+          const ratio = Math.min(1.0, prot / targetProt);
+          ringProt.style.strokeDashoffset = circumProt * (1 - ratio);
+        }
       }
     } catch (err) {
       console.warn('Could not fetch nutrition:', err);

@@ -268,7 +268,9 @@ def test_auth_required(server):
 
 
 def test_health_endpoints_are_public(server):
-    assert httpx.get(f"{server.base}/healthz").json() == {"status": "ok"}
+    hz = httpx.get(f"{server.base}/healthz").json()
+    assert hz["status"] == "ok"
+    assert "aws_bedrock" in hz
     assert httpx.get(f"{server.base}/readyz").json() == {"status": "ready"}
 
 
@@ -487,6 +489,27 @@ def test_save_custom_recipe_flow(server, db):
     assert save_data["saved_recipe"]["name"] == "Post-Workout Fuel"
     assert len(save_data["saved_recipe"]["ingredients"]) > 0
     assert "Saved your recipe for Post-Workout Fuel" in save_data["spoken_message"]
+
+
+def test_amazon_bedrock_recipe_classifier(server):
+    # Test FastMCP tool: classify_recipe_ingredients
+    res = tool(server, "classify_recipe_ingredients", {
+        "recipe_name": "Tofu Stir Fry",
+        "ingredients": [
+            {"item": "firm tofu"},
+            {"item": "olive oil"},
+            {"item": "sesame seeds"}
+        ]
+    })
+    data = payload(res)
+    assert "ingredients" in data
+    roles = {item["name"]: item["role"] for item in data["ingredients"]}
+    assert "firm tofu" in roles
+    assert roles["firm tofu"] == "core"
+    assert roles.get("olive oil") == "staple"
+    assert roles.get("sesame seeds") == "optional"
+    assert data.get("source") in ("amazon_bedrock", "deterministic_fallback")
+
 
 
 

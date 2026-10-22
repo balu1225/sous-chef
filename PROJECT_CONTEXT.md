@@ -187,4 +187,13 @@ If Alexa+ console access is unavailable or CLI deploy fails, switch immediately 
   - **Web Companion Modal UI:** "+ Add Custom Family Recipe" button opens responsive modal with prep minutes, servings, and auto-macro calculation; custom recipes appear in the starter carousel with a distinct "Family" badge.
   - **Smart Cross-Unit Cooking Deductions:** Upgraded `execute_cooking_deduction` to dynamically translate recipe volume/mass/count units to the inventory item's tracked base unit using canonical USDA densities.
   - **All 58/58 automated tests passing in 11.86s.**
+- **2026-10-21 23:05:** Full AWS & Alexa+ Ecosystem Alignment (AWS Builder Challenge + Alexa+ Track):
+  - **Amazon Bedrock Converse Integration (`src/sous_chef/bedrock.py`):** Uses Bedrock Converse API (`anthropic.claude-3-haiku-20240307-v1:0`) to classify ingredients into core, optional, and staple roles with deterministic offline fallback.
+  - **FastMCP Tool Registered:** Added `classify_recipe_ingredients` tool to FastMCP 1.30.0 Streamable HTTP server.
+  - **Official Alexa Manifests Created:** Added `alexa/addon.json` (Alexa+ MCP Add-on manifest), `alexa/skill.json` (Alexa Skill manifest), and `alexa/interactionModels/custom/en-US.json` (Custom voice interaction model).
+  - **AWS Cloud Architecture:** Created multi-stage production `Dockerfile` and AWS CloudFormation template (`aws/cloudformation.yaml`) for AWS App Runner + Amazon Aurora Serverless PostgreSQL + Amazon Bedrock.
+  - **Cloudflare Public Tunnel Script:** Added `scripts/start_tunnel.sh` to expose local FastMCP server via HTTPS for live Alexa Developer Console testing.
+  - **Show-Stopper Web Visuals:** Added Kinetic Apple-Fitness style SVG Macro Progress Rings (Calories & Protein targets) and 1-Click Recipe Servings Multiplier (1x / 2x / 4x) to the Web Companion.
+  - **All 59/59 automated tests passing in 15.62s.**
+
 

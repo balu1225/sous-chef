@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Sous-Chef AWS Architecture: FastMCP 1.30.0 on AWS App Runner + Amazon Aurora PostgreSQL Serverless v2 + Amazon Bedrock'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: 'production'
+  BedrockModelId:
+    Type: String
+    Default: 'anthropic.claude-3-haiku-20240307-v1:0'
+
+Resources:
+  # 1. IAM Role with Amazon Bedrock Converse Access
+  SousChefAppRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'sous-chef-app-role-${AWS::Region}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - build.apprunner.amazonaws.com
+                - tasks.apprunner.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: BedrockConversePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:Converse
+                Resource: !Sub 'arn:aws:bedrock:${AWS::Region}::foundation-model/${BedrockModelId}'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+
+  # 2. AWS App Runner Service (Fully Managed Container Platform for FastMCP Streamable HTTP)
+  SousChefService:
+    Type: AWS::AppRunner::Service
+    Properties:
+      ServiceName: sous-chef-mcp-server
+      SourceConfiguration:
+        AuthenticationConfiguration:
+          AccessRoleArn: !GetAtt SousChefAppRole.Arn
+        AutoDeploymentsEnabled: true
+        ImageRepository:
+          ImageIdentifier: 'public.ecr.aws/sous-chef/server:latest'
+          ImageRepositoryType: ECR_PUBLIC
+          ImageConfiguration:
+            Port: '8000'
+            RuntimeEnvironmentVariables:
+              - Name: KITCHEN_PORT
+                Value: '8000'
+              - Name: KITCHEN_HOST
+                Value: '0.0.0.0'
+              - Name: AWS_REGION
+                Value: !Ref 'AWS::Region'
+              - Name: KITCHEN_HOUSEHOLD_ID
+                Value: 'demo'
+      InstanceConfiguration:
+        Cpu: '1 vCPU'
+        Memory: '2 GB'
+        InstanceRoleArn: !GetAtt SousChefAppRole.Arn
+      HealthCheckConfiguration:
+        Protocol: HTTP
+        Path: /healthz
+        Interval: 10
+        Timeout: 3
+        HealthyThreshold: 1
+        UnhealthyThreshold: 3
+
+Outputs:
+  ServiceUrl:
+    Description: 'Public HTTPS Endpoint for Alexa+ Add-on & Model Context Protocol (MCP)'
+    Value: !GetAtt SousChefService.ServiceUrl
+  ServiceArn:
+    Description: 'App Runner Service ARN'
+    Value: !GetAtt SousChefService.ServiceArn

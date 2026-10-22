@@ -48,6 +48,7 @@ from matching import (
 )
 from nutrition import calculate_meal_nutrition
 from remedies import get_remedy_for_mishap
+from bedrock import tag_recipe_ingredients, is_bedrock_configured
 
 log = logging.getLogger("kitchen_agent")
 
@@ -363,6 +364,23 @@ def register_tools(mcp: FastMCP, state: State) -> None:
         return await run_tool("get_cooking_remedy", state.config.household_id,
                               ctx.request_id, handler)
 
+    @mcp.tool(
+        name="classify_recipe_ingredients",
+        description="Classify recipe ingredients into core, optional, or staple roles using Amazon Bedrock Converse API.",
+        annotations=ToolAnnotations(readOnlyHint=True, idempotentHint=True,
+                                    destructiveHint=False, openWorldHint=False),
+    )
+    async def classify_recipe_ingredients(
+        ctx: Context,
+        recipe_name: Annotated[str, Field(min_length=1, max_length=100, description="Name of the recipe")],
+        ingredients: Annotated[list[dict], Field(description="List of ingredients with name/item keys")],
+    ) -> CallToolResult:
+        async def handler() -> dict:
+            return tag_recipe_ingredients(recipe_name, ingredients)
+
+        return await run_tool("classify_recipe_ingredients", state.config.household_id,
+                              ctx.request_id, handler)
+
 
 
 # --------------------------------------------------------------------------
@@ -421,7 +439,11 @@ def build_app(config: Config, store_factory: Callable[[Config], Store] | None = 
     factory = store_factory or default_store
 
     async def healthz(_: Request) -> JSONResponse:
-        return JSONResponse({"status": "ok"})
+        return JSONResponse({
+            "status": "ok",
+            "aws_bedrock": "live" if is_bedrock_configured() else "fallback_active",
+            "protocol": "2025-11-25"
+        })
 
     async def readyz(_: Request) -> JSONResponse:
         if state.store is None:

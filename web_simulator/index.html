@@ -153,20 +153,43 @@
             </div>
           </div>
 
-          <!-- Daily Nutrition Summary Widget -->
+          <!-- Daily Nutrition Summary Widget with Kinetic Macro Rings -->
           <div class="nutrition-widget">
             <div class="nutrition-widget-header">
-              <h3>Today's Nutrition (Estimated)</h3>
+              <h3>Today's Nutrition Goals</h3>
               <span class="source-tag">USDA FoodData</span>
             </div>
-            <div class="nutrition-metrics">
-              <div class="metric-card">
-                <span class="metric-num" id="today-kcal">0</span>
-                <span class="metric-name">Calories (kcal)</span>
+            <div class="nutrition-dashboard">
+              <div class="macro-rings-wrapper">
+                <svg class="macro-rings-svg" viewBox="0 0 120 120">
+                  <circle class="ring-bg ring-bg-kcal" cx="60" cy="60" r="48" />
+                  <circle class="ring-fg ring-fg-kcal" id="ring-kcal" cx="60" cy="60" r="48" stroke-dasharray="301.59" stroke-dashoffset="301.59" />
+                  <circle class="ring-bg ring-bg-prot" cx="60" cy="60" r="36" />
+                  <circle class="ring-fg ring-fg-prot" id="ring-prot" cx="60" cy="60" r="36" stroke-dasharray="226.19" stroke-dashoffset="226.19" />
+                </svg>
+                <div class="ring-center-icon">🔥</div>
               </div>
-              <div class="metric-card">
-                <span class="metric-num" id="today-protein">0g</span>
-                <span class="metric-name">Protein</span>
+              <div class="nutrition-metrics">
+                <div class="metric-card">
+                  <div class="metric-title-row">
+                    <span class="metric-dot kcal-dot"></span>
+                    <span class="metric-name">Calories</span>
+                  </div>
+                  <div class="metric-value-row">
+                    <span class="metric-num" id="today-kcal">0</span>
+                    <span class="metric-target">/ 2,000 kcal</span>
+                  </div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-title-row">
+                    <span class="metric-dot prot-dot"></span>
+                    <span class="metric-name">Protein</span>
+                  </div>
+                  <div class="metric-value-row">
+                    <span class="metric-num" id="today-protein">0g</span>
+                    <span class="metric-target">/ 120g target</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -194,6 +217,12 @@
                   <span class="recipe-badge" id="recipe-badge-time">⏱️ 10 min</span>
                   <span class="recipe-badge" id="recipe-badge-servings">🍽️ 2 servings</span>
                   <span class="recipe-badge" id="recipe-badge-kcal">🔥 ~320 kcal</span>
+                  <div class="servings-scaler-group">
+                    <span class="scaler-label">Scale:</span>
+                    <button type="button" class="scale-btn" data-scale="1">1x</button>
+                    <button type="button" class="scale-btn active" data-scale="2">2x</button>
+                    <button type="button" class="scale-btn" data-scale="4">4x</button>
+                  </div>
                 </div>
                 <h2 id="recipe-title">Spinach & Cheddar Scramble</h2>
                 <p id="recipe-desc">Fluffy scrambled eggs folded with tender baby spinach and melted cheddar.</p>

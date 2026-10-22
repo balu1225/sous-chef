@@ -1,0 +1,34 @@
+{
+  "manifest": {
+    "publishingInformation": {
+      "locales": {
+        "en-US": {
+          "name": "Sous-Chef",
+          "summary": "Voice-first kitchen assistant powered by FastMCP and PostgreSQL.",
+          "description": "Sous-Chef pairs Alexa with an immutable kitchen ledger and Amazon Bedrock to track groceries, eliminate food waste, guide step-by-step cooking, and rescue culinary mishaps.",
+          "examplePhrases": [
+            "Alexa, open Sous-Chef",
+            "Alexa, ask Sous-Chef what can I make in 15 minutes?",
+            "Alexa, tell Sous-Chef I bought 1 gallon of milk"
+          ],
+          "keywords": [
+            "kitchen", "cooking", "recipes", "food waste", "pantry", "mcp"
+          ]
+        }
+      },
+      "isAvailableWorldwide": true,
+      "testingInstructions": "Connect via Model Context Protocol (MCP) Streamable HTTP endpoint or local cloudflared tunnel.",
+      "category": "COOKING_AND_RECIPE",
+      "distributionCountries": []
+    },
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "uri": "https://sous-chef.example.com/api/converse"
+        },
+        "interfaces": []
+      }
+    },
+    "manifestVersion": "1.0"
+  }
+}

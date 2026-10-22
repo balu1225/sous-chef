@@ -984,9 +984,9 @@
     "semantic_hash": "d93f918a62025bf7d4e7d65d1ffd1973"
   },
   "src/sous_chef/server.py": {
-    "mtime": 1792637565.399877,
-    "seen": 1792638760.258514,
-    "ast_hash": "e0f3070b7f5c959eccce3fd042fb28eb",
+    "mtime": 1792648855.812864,
+    "seen": 1792649229.063493,
+    "ast_hash": "019e7d79b703fae0a2de80f3fd6394b1",
     "semantic_hash": ""
   },
   "tests/test_amount_parser.py": {
@@ -1002,15 +1002,15 @@
     "semantic_hash": "a173986a4a9ea46c96937479bae0eec2"
   },
   "tests/test_server.py": {
-    "mtime": 1792637490.0500102,
-    "seen": 1792638760.258538,
-    "ast_hash": "3a412df31f0558ee1223f652da03efdc",
+    "mtime": 1792648885.2532885,
+    "seen": 1792649229.063545,
+    "ast_hash": "2bf0c7291787c4032bcf48f7c9aa5391",
     "semantic_hash": ""
   },
   "web_simulator/app.js": {
-    "mtime": 1792637408.4782546,
-    "seen": 1792638760.258539,
-    "ast_hash": "590b72af6152ff1254892bb69ad10233",
+    "mtime": 1792649152.7784696,
+    "seen": 1792649229.0635462,
+    "ast_hash": "964e242b78ca033a92032993deed41c6",
     "semantic_hash": ""
   },
   "src/sous_chef/data/seed_recipes.json": {
@@ -1344,21 +1344,57 @@
     "semantic_hash": ""
   },
   "requirements.txt": {
-    "mtime": 1792551848.586969,
-    "seen": 1792635867.620033,
-    "ast_hash": "1b5ee4923390a0eace48f94d4e743fdc",
+    "mtime": 1792648782.622751,
+    "seen": 1792649229.065158,
+    "ast_hash": "590c591582fd62912dced6b35362e859",
     "semantic_hash": ""
   },
   "web_simulator/index.html": {
-    "mtime": 1792637328.9363973,
-    "seen": 1792638760.259927,
-    "ast_hash": "306b5dcfd4abebda473f53000977afa0",
+    "mtime": 1792649069.426613,
+    "seen": 1792649229.0651588,
+    "ast_hash": "5dc01a384698104190359f09b48517ff",
     "semantic_hash": ""
   },
   "src/sous_chef/remedies.py": {
     "mtime": 1792636378.8199518,
     "seen": 1792636591.398643,
     "ast_hash": "ffc5ca0a54710f3105255340aac83d58",
+    "semantic_hash": ""
+  },
+  "alexa/addon.json": {
+    "mtime": 1792648922.9447117,
+    "seen": 1792649229.0632792,
+    "ast_hash": "462aa281ad3d9ab06afb78ee3b5033aa",
+    "semantic_hash": ""
+  },
+  "alexa/interactionModels/custom/en-US.json": {
+    "mtime": 1792648939.5897887,
+    "seen": 1792649229.06328,
+    "ast_hash": "103343503797dd03af3e0bb8908744cf",
+    "semantic_hash": ""
+  },
+  "alexa/skill.json": {
+    "mtime": 1792648930.411165,
+    "seen": 1792649229.0632808,
+    "ast_hash": "6beb631de23446e7be542f16778cafa0",
+    "semantic_hash": ""
+  },
+  "scripts/start_tunnel.sh": {
+    "mtime": 1792648964.169492,
+    "seen": 1792649229.063282,
+    "ast_hash": "be6f34813b5fda828f5ca56ee9ac321f",
+    "semantic_hash": ""
+  },
+  "src/sous_chef/bedrock.py": {
+    "mtime": 1792648796.1278133,
+    "seen": 1792649229.063283,
+    "ast_hash": "93c3d0091ea82ce29f05fe9abae4acc9",
+    "semantic_hash": ""
+  },
+  "aws/cloudformation.yaml": {
+    "mtime": 1792648957.3821335,
+    "seen": 1792649229.0651379,
+    "ast_hash": "5a119af957a0ed2be750fef66190fe84",
     "semantic_hash": ""
   }
 }

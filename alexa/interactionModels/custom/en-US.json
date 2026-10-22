@@ -1,0 +1,107 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "sous chef",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "QueryInventoryIntent",
+          "slots": [],
+          "samples": [
+            "what is in my kitchen",
+            "what do I have",
+            "what is in the fridge",
+            "what is about to expire",
+            "what is expiring soon"
+          ]
+        },
+        {
+          "name": "SuggestRecipeIntent",
+          "slots": [
+            {
+              "name": "MaxMinutes",
+              "type": "AMAZON.NUMBER"
+            }
+          ],
+          "samples": [
+            "what can I make",
+            "what can I cook",
+            "what can I make in {MaxMinutes} minutes",
+            "suggest a recipe",
+            "what is for dinner"
+          ]
+        },
+        {
+          "name": "ManageInventoryIntent",
+          "slots": [
+            {
+              "name": "Quantity",
+              "type": "AMAZON.NUMBER"
+            },
+            {
+              "name": "Unit",
+              "type": "AMAZON.Food"
+            },
+            {
+              "name": "FoodItem",
+              "type": "AMAZON.Food"
+            }
+          ],
+          "samples": [
+            "I bought {Quantity} {Unit} of {FoodItem}",
+            "I bought {Quantity} {FoodItem}",
+            "add {Quantity} {FoodItem}",
+            "the {FoodItem} is spoiled",
+            "discard the {FoodItem}",
+            "throw out the {FoodItem}"
+          ]
+        },
+        {
+          "name": "CookingMishapIntent",
+          "slots": [
+            {
+              "name": "Mishap",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "I burned the food",
+            "the food is burned",
+            "it is too salty",
+            "my mouth is on fire it is too spicy",
+            "the chicken is dry",
+            "the sauce is too watery",
+            "it is stuck to the pan",
+            "help I messed up my cooking"
+          ]
+        },
+        {
+          "name": "SaveRecipeIntent",
+          "slots": [
+            {
+              "name": "RecipeName",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "save this recipe as {RecipeName}",
+            "save what I cooked as {RecipeName}",
+            "save as {RecipeName}"
+          ]
+        }
+      ],
+      "types": []
+    }
+  }
+}

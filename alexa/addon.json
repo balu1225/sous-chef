@@ -1,0 +1,75 @@
+{
+  "manifestVersion": "1.0",
+  "addon": {
+    "addonId": "amzn1.ask.addon.sous-chef-mcp",
+    "name": "Sous-Chef",
+    "summary": "Voice-first kitchen assistant for smart pantry inventory, waste reduction, and culinary rescue on Alexa+.",
+    "description": "Sous-Chef connects Alexa+ to your living kitchen. Powered by an immutable PostgreSQL event ledger and Amazon Bedrock, Sous-Chef tracks fridge and pantry stock, prioritizes meals using ingredients expiring within 48 hours, guides cooking step-by-step with ambient music, and rescues ruined dishes with culinary chemistry.",
+    "category": "FOOD_AND_DRINK",
+    "protocol": "2025-11-25",
+    "transport": {
+      "type": "STREAMABLE_HTTP",
+      "uri": "https://sous-chef.example.com/mcp",
+      "auth": {
+        "type": "BEARER",
+        "header": "Authorization"
+      }
+    },
+    "tools": [
+      {
+        "name": "query_inventory",
+        "description": "Query items currently in the kitchen with quantities, units, and expiry status.",
+        "readOnly": true
+      },
+      {
+        "name": "manage_inventory",
+        "description": "Add, consume, discard or set kitchen stock in an atomic batch with idempotency.",
+        "readOnly": false
+      },
+      {
+        "name": "undo_last_change",
+        "description": "Undo the most recent inventory change without losing history.",
+        "readOnly": false
+      },
+      {
+        "name": "suggest_recipes",
+        "description": "Suggest meals using available stock, prioritizing items expiring within 48 hours.",
+        "readOnly": true
+      },
+      {
+        "name": "cook_recipe",
+        "description": "Deduct ingredients for a completed recipe and log daily nutrition.",
+        "readOnly": false
+      },
+      {
+        "name": "save_custom_recipe",
+        "description": "Save an improvised family recipe by voice into permanent collection.",
+        "readOnly": false
+      },
+      {
+        "name": "get_cooking_remedy",
+        "description": "Get scientific culinary fixes and witty advice when food is burned, too salty, or ruined.",
+        "readOnly": true
+      },
+      {
+        "name": "classify_recipe_ingredients",
+        "description": "Classify ingredients into core, optional, or staple roles using Amazon Bedrock Converse API.",
+        "readOnly": true
+      },
+      {
+        "name": "nutrition_summary",
+        "description": "Get calories and protein consumed today based on logged meals.",
+        "readOnly": true
+      }
+    ],
+    "examplePhrases": [
+      "Alexa, ask Sous-Chef what can I cook in 15 minutes?",
+      "Alexa, tell Sous-Chef I bought 1 gallon of milk and 6 eggs.",
+      "Alexa, tell Sous-Chef the spinach is spoiled.",
+      "Alexa, ask Sous-Chef how to fix soup that is too salty."
+    ],
+    "keywords": [
+      "cooking", "recipes", "food waste", "pantry", "groceries", "nutrition", "chef", "mcp"
+    ]
+  }
+}
